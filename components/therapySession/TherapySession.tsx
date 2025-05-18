@@ -1,0 +1,432 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/components/auth-provider";
+import {
+  doc,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot,
+  updateDoc,
+  getDocs,
+  where,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  MoreHorizontal,
+  Send,
+  Mic,
+  MicOff,
+  XCircle,
+  PenLine,
+  Calendar,
+  Clock,
+  ThumbsUp,
+  ThumbsDown,
+  Smile,
+  Frown,
+  Meh,
+  Download,
+  History,
+  Settings,
+  Save,
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  RefreshCw,
+  Menu,
+  FileText,
+} from "lucide-react";
+import { useToast } from "@/hooks/useToast";
+
+import { generateTherapyResponse } from "@/lib/ai-service";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { MoodSelector } from "./MoodSelector";
+import { SessionControls } from "./SessionControls";
+import { SessionNotesPanel } from "./SessionNotesPanel";
+import { MessageFeedback } from "./MessageFeedback";
+import { AISettings } from "./AISettings";
+import { SessionHistory } from "./SessionHistory";
+import { ChatForm } from "./ChatForm";
+
+export default function TherapySession() {
+  const { success } = useToast();
+
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [sessionTheme, setSessionTheme] = useState("");
+  const [sessionNotes, setSessionNotes] = useState("");
+  const [sessionDate, setSessionDate] = useState<Date>(new Date());
+  const [currentMood, setCurrentMood] = useState<string | null>(null);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [savedSessions, setSavedSessions] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [sessionGoals, setSessionGoals] = useState<string[]>([]);
+  const [newGoal, setNewGoal] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [aiResponseStyle, setAiResponseStyle] = useState("balanced");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const { user } = useAuth();
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history for current session
+  useEffect(() => {
+    if (!user || !sessionId) return;
+
+    const chatRef = collection(
+      db,
+      "users",
+      user.uid,
+      "sessions",
+      sessionId,
+      "messages"
+    );
+    const q = query(chatRef, orderBy("timestamp", "asc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(messages);
+    });
+
+    const loadSessionInfo = async () => {
+      const sessionDoc = doc(db, "users", user.uid, "sessions", sessionId);
+      const unsubscribeSession = onSnapshot(sessionDoc, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setSessionTheme(data.theme || "");
+          setSessionNotes(data.notes || "");
+          if (data.date) {
+            setSessionDate(data.date.toDate());
+          }
+          setSessionGoals(data.goals || []);
+        }
+      });
+
+      return () => unsubscribeSession();
+    };
+
+    loadSessionInfo();
+    return () => unsubscribe();
+  }, [user, sessionId]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const sessionsRef = collection(db, "users", user.uid, "sessions");
+    const q = query(sessionsRef, orderBy("date", "desc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const sessions = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date?.toDate() || new Date(),
+      }));
+      setSavedSessions(sessions);
+
+      if (!sessionId && sessions.length > 0) {
+        setSessionId(sessions[0].id);
+      } else if (!sessionId) {
+        createNewSession();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (messages.length === 0 && user && sessionId) {
+      const chatRef = collection(
+        db,
+        "users",
+        user.uid,
+        "sessions",
+        sessionId,
+        "messages"
+      );
+
+      addDoc(chatRef, {
+        text: `Hello ${
+          user.displayName?.split(" ")[0] || "there"
+        }! I'm your AI therapy assistant. How are you feeling today?`,
+        sender: "ai",
+        timestamp: serverTimestamp(),
+      });
+    }
+  }, [user, messages.length, sessionId]);
+
+  const createNewSession = async () => {
+    if (!user) return;
+
+    const sessionsRef = collection(db, "users", user.uid, "sessions");
+    const newSessionRef = await addDoc(sessionsRef, {
+      theme: "New Therapy Session",
+      date: serverTimestamp(),
+      notes: "",
+      goals: [],
+    });
+
+    setSessionId(newSessionRef.id);
+    setMessages([]);
+    setSessionTheme("New Therapy Session");
+    setSessionNotes("");
+    setSessionGoals([]);
+
+    success({
+      title: "New Session Created",
+      description: "You've started a new therapy session.",
+    });
+  };
+
+  const saveSessionData = async () => {
+    if (!user || !sessionId) return;
+
+    const sessionRef = doc(db, "users", user.uid, "sessions", sessionId);
+    await updateDoc(sessionRef, {
+      theme: sessionTheme,
+      notes: sessionNotes,
+      goals: sessionGoals,
+      lastUpdated: serverTimestamp(),
+    });
+
+    success({
+      title: "Session Updated",
+      description: "Your session details have been saved.",
+    });
+  };
+
+  const addSessionGoal = () => {
+    if (!newGoal.trim()) return;
+    setSessionGoals([...sessionGoals, newGoal.trim()]);
+    setNewGoal("");
+  };
+
+  const removeSessionGoal = (index: number) => {
+    const updatedGoals = [...sessionGoals];
+    updatedGoals.splice(index, 1);
+    setSessionGoals(updatedGoals);
+  };
+
+  const switchToSession = (id: string) => {
+    setSessionId(id);
+    setShowHistory(false);
+  };
+
+  const formatMessageTime = (timestamp: any) => {
+    if (!timestamp) return "";
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return format(date, "h:mm a");
+  };
+
+  const shareSessionLink = () => {
+    // TODO:
+    // This would generate a shareable link to the session
+    // For now just show a toast
+    success({
+      title: "Session Link Generated",
+      description: "The link has been copied to your clipboard. (Demo only)",
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full max-h-screen overflow-hidden">
+      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b p-4">
+        <h1 className="text-2xl font-bold">AI Therapy Session</h1>
+        <p className="text-muted-foreground text-sm">
+          A safe space to reflect, process, and grow
+        </p>
+      </div>
+
+      {showHistory ? (
+        <div className="flex-1 overflow-y-auto p-4">
+          <SessionHistory
+            savedSessions={savedSessions}
+            createNewSession={createNewSession}
+            switchToSession={switchToSession}
+            sessionId={sessionId}
+          />
+        </div>
+      ) : (
+        <>
+          <div className="p-4">
+            <SessionControls
+              setShowHistory={setShowHistory}
+              showHistory={showHistory}
+              isNotesOpen={isNotesOpen}
+              setIsNotesOpen={setIsNotesOpen}
+              shareSessionLink={shareSessionLink}
+              setIsSettingsOpen={setIsSettingsOpen}
+              createNewSession={createNewSession}
+              sessionGoals={sessionGoals}
+              messages={messages}
+              sessionTheme={sessionTheme}
+              sessionDate={sessionDate}
+              sessionNotes={sessionNotes}
+            />
+            <SessionNotesPanel
+              sessionTheme={sessionTheme}
+              setSessionTheme={setSessionTheme}
+              saveSessionData={saveSessionData}
+              sessionNotes={sessionNotes}
+              setSessionNotes={setSessionNotes}
+              newGoal={newGoal}
+              setNewGoal={setNewGoal}
+              sessionGoals={sessionGoals}
+              addSessionGoal={addSessionGoal}
+              removeSessionGoal={removeSessionGoal}
+              sessionDate={sessionDate}
+              shareSessionLink={shareSessionLink}
+              isNotesOpen={isNotesOpen}
+              messages={messages}
+            />
+          </div>
+
+          <div className="flex-1 overflow-hidden flex flex-col relative">
+            <div className="flex-1 overflow-y-auto p-4">
+              {currentMood === null && messages.length <= 2 && (
+                <div className="mb-6">
+                  <MoodSelector
+                    currentMood={currentMood}
+                    setCurrentMood={setCurrentMood}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.sender === "user"
+                        ? "justify-end"
+                        : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`group max-w-[85%] rounded-lg px-4 py-2 ${
+                        message.sender === "user"
+                          ? "bg-primary/90 text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{message.text}</p>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-xs opacity-70">
+                          {formatMessageTime(message.timestamp)}
+                        </span>
+                        {message.sender === "ai" && (
+                          <MessageFeedback
+                            user={user}
+                            sessionId={sessionId}
+                            success={success}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-lg px-4 py-3 bg-secondary">
+                      <div className="flex space-x-2">
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce"></div>
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]"></div>
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            <ChatForm
+              sessionId={sessionId}
+              user={user}
+              setShowSuggestions={setShowSuggestions}
+              aiResponseStyle={aiResponseStyle}
+              showSuggestions={showSuggestions}
+              messages={messages}
+              setLoading={setLoading}
+              loading={loading}
+            />
+          </div>
+        </>
+      )}
+
+      <AISettings
+        setAiResponseStyle={setAiResponseStyle}
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
+        aiResponseStyle={aiResponseStyle}
+        setShowSuggestions={setShowSuggestions}
+        showSuggestions={showSuggestions}
+      />
+    </div>
+  );
+}

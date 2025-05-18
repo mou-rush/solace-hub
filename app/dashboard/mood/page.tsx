@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/useToast";
+
 import { BarChart } from "lucide-react";
 
 const moodOptions = [
@@ -33,7 +34,7 @@ export default function MoodTracker() {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { error, success } = useToast();
 
   useEffect(() => {
     const fetchMoodData = async () => {
@@ -45,12 +46,11 @@ export default function MoodTracker() {
           const moodData = moodDoc.data();
           setMoodHistory(moodData.entries || []);
         }
-      } catch (error) {
-        console.error("Error fetching mood data:", error);
-        toast({
+      } catch (errorMessage) {
+        console.error("Error fetching mood data:", errorMessage);
+        error({
           title: "Error",
           description: "Failed to load mood history",
-          variant: "destructive",
         });
       } finally {
         setDataLoading(false);
@@ -58,7 +58,7 @@ export default function MoodTracker() {
     };
 
     fetchMoodData();
-  }, [user, toast]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,16 +92,15 @@ export default function MoodTracker() {
       setSelectedMood("");
       setNotes("");
 
-      toast({
+      success({
         title: "Mood tracked",
         description: "Your mood has been recorded successfully",
       });
     } catch (error) {
       console.error("Error saving mood:", error);
-      toast({
+      error({
         title: "Error",
         description: "Failed to save your mood",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);

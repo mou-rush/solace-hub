@@ -20,22 +20,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Heart } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function SignUp() {
+  const { success, error } = useToast();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -43,12 +43,10 @@ export default function SignUp() {
       );
       const user = userCredential.user;
 
-      // Update profile with name
       await updateProfile(user, {
         displayName: name,
       });
 
-      // Create user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         name,
         email,
@@ -56,22 +54,31 @@ export default function SignUp() {
         lastLogin: new Date().toISOString(),
       });
 
-      // Create initial mood tracking document
       await setDoc(doc(db, "moods", user.uid), {
         entries: [],
       });
 
-      toast({
+      success({
         title: "Account created!",
         description: "Welcome to SolaceHub. You're now signed in.",
       });
 
       router.push("/dashboard");
-    } catch (error: any) {
-      toast({
+    } catch (errorMessage: any) {
+      if (errorMessage.code === "auth/email-already-in-use") {
+        errorMessage.message = "Email already in use. Please try another.";
+      }
+      if (errorMessage.code === "auth/invalid-email") {
+        errorMessage.message =
+          "Invalid email address. Please check and try again.";
+      }
+      if (errorMessage.code === "auth/weak-password") {
+        errorMessage.message = "Password should be at least 6 characters.";
+      }
+
+      error({
         title: "Error creating account",
-        description: error.message,
-        variant: "destructive",
+        description: errorMessage.message,
       });
     } finally {
       setLoading(false);

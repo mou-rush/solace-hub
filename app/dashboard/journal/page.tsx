@@ -1,107 +1,105 @@
 "use client";
 
-import type React from "react";
-
-import { useState, useEffect } from "react";
-import { useAuth } from "@/components/auth-provider";
-import { doc, getDoc, updateDoc, setDoc, arrayUnion } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import React, { useState, useEffect } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/useToast";
+
+import { useAuth } from "@/components/auth-provider";
 import { analyzeJournalEntry } from "@/lib/ai-service";
-import { BookOpen, Lightbulb } from "lucide-react";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Lightbulb, BookOpen, Eye, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function JournalPage() {
+  const { user } = useAuth();
+  const { success, error } = useToast();
+
+  const [entries, setEntries] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [entries, setEntries] = useState<any[]>([]);
+  const [tag, setTag] = useState("");
+  const [insight, setInsight] = useState("");
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [insight, setInsight] = useState("");
   const [dataLoading, setDataLoading] = useState(true);
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
 
   useEffect(() => {
-    const fetchJournalData = async () => {
-      if (!user) return;
-
+    if (!user) return;
+    const fetchJournal = async () => {
       try {
-        const journalDoc = await getDoc(
+        const docSnap = await getDoc(
           doc(db, "users", user.uid, "journal", "entries")
         );
-        if (journalDoc.exists()) {
-          const journalData = journalDoc.data();
-          setEntries(journalData.entries || []);
+        if (docSnap.exists()) {
+          setEntries(docSnap.data().entries || []);
         }
-      } catch (error) {
-        console.error("Error fetching journal data:", error);
+      } catch (errorMessage) {
+        error({ title: "Error loading entries" });
       } finally {
         setDataLoading(false);
       }
     };
-
-    fetchJournalData();
+    fetchJournal();
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content || !title || !user) return;
+    if (!title || !content || !user) return;
 
     setLoading(true);
 
+    const journalRef = doc(db, "users", user.uid, "journal", "entries");
+    const newEntry = {
+      title,
+      content,
+      tag,
+      insight,
+      timestamp: new Date().toISOString(),
+    };
+
     try {
-      const journalEntry = {
-        title,
-        content,
-        timestamp: new Date().toISOString(),
-      };
-
-      const journalRef = doc(db, "users", user.uid, "journal", "entries");
-
-      // Check if document exists first
-      const docSnap = await getDoc(journalRef);
-
-      if (docSnap.exists()) {
-        // Document exists, update it
+      const existing = await getDoc(journalRef);
+      if (existing.exists()) {
         await updateDoc(journalRef, {
-          entries: arrayUnion(journalEntry),
+          entries: arrayUnion(newEntry),
         });
       } else {
-        // Document doesn't exist, create it
-        await setDoc(journalRef, {
-          entries: [journalEntry],
-        });
+        await setDoc(journalRef, { entries: [newEntry] });
       }
 
-      // Update local state
-      setEntries([...entries, journalEntry]);
-
-      // Reset form
+      setEntries((prev) => [...prev, newEntry]);
       setTitle("");
       setContent("");
+      setTag("");
       setInsight("");
 
-      toast({
-        title: "Journal entry saved",
-        description: "Your journal entry has been saved successfully",
-      });
-    } catch (error) {
-      console.error("Error saving journal entry:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save your journal entry",
-        variant: "destructive",
-      });
+      success({ title: "Entry saved!" });
+    } catch (err) {
+      error({ title: "Failed to save entry" });
     } finally {
       setLoading(false);
     }
@@ -109,141 +107,188 @@ export default function JournalPage() {
 
   const getAIInsight = async () => {
     if (!content) return;
-
     setAnalyzing(true);
-
     try {
-      const aiInsight = await analyzeJournalEntry(content);
-      setInsight(aiInsight);
-    } catch (error) {
-      console.error("Error getting AI insight:", error);
-      toast({
-        title: "Error",
-        description: "Failed to analyze your journal entry",
-        variant: "destructive",
-      });
+      const response = await analyzeJournalEntry(content);
+      setInsight(response);
+    } catch {
+      error({ title: "AI analysis failed" });
     } finally {
       setAnalyzing(false);
     }
   };
 
+  const handleDelete = async (entryToDelete: any) => {
+    if (!user) return;
+
+    try {
+      const ref = doc(db, "users", user.uid, "journal", "entries");
+      await updateDoc(ref, {
+        entries: arrayRemove(entryToDelete),
+      });
+      setEntries((prev) => prev.filter((e) => e !== entryToDelete));
+      success({ title: "Entry deleted" });
+    } catch {
+      error({ title: "Failed to delete entry" });
+    }
+  };
+
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Journal</h1>
-        <p className="text-muted-foreground mt-1">
-          Express your thoughts and feelings in a private space
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-2">My Journal</h1>
+      <p className="text-muted-foreground mb-6">Reflect, write, and grow.</p>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>New Entry</CardTitle>
-            <CardDescription>
-              Write about your day, thoughts, or feelings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium">
-                  Title
-                </label>
+      <Tabs defaultValue="new">
+        <TabsList className="mb-4">
+          <TabsTrigger value="new">New Entry</TabsTrigger>
+          <TabsTrigger value="history">My Entries</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="new">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create New Entry</CardTitle>
+              <CardDescription>
+                Jot down your thoughts, feelings, or experiences.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={handleSubmit}>
                 <Input
-                  id="title"
-                  placeholder="Give your entry a title"
+                  placeholder="Entry title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="content" className="text-sm font-medium">
-                  Content
-                </label>
                 <Textarea
-                  id="content"
-                  placeholder="What's on your mind today?"
+                  placeholder="What's on your mind?"
+                  rows={8}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  rows={8}
                   required
                 />
-              </div>
+                <Input
+                  placeholder="Optional tag (e.g. Mood, Work, Travel)"
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                />
 
-              {insight && (
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="h-5 w-5 text-yellow-600" />
-                    <h3 className="font-medium text-yellow-800">AI Insight</h3>
+                {insight && (
+                  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Lightbulb className="h-4 w-4 text-yellow-600" />
+                      <span className="text-sm font-medium text-yellow-800">
+                        AI Insight
+                      </span>
+                    </div>
+                    <p className="text-sm text-yellow-800">{insight}</p>
                   </div>
-                  <p className="text-sm text-yellow-800">{insight}</p>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={getAIInsight}
+                    disabled={!content || analyzing}
+                  >
+                    {analyzing ? "Analyzing..." : "Get AI Insight"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                    disabled={!title || !content || loading}
+                  >
+                    {loading ? "Saving..." : "Save Entry"}
+                  </Button>
                 </div>
-              )}
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={getAIInsight}
-                  disabled={!content || analyzing}
-                  className="flex-1"
-                >
-                  {analyzing ? "Analyzing..." : "Get AI Insight"}
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
-                  disabled={!title || !content || loading}
-                >
-                  {loading ? "Saving..." : "Save Entry"}
-                </Button>
+        <TabsContent value="history">
+          <Card>
+            <CardHeader className="flex justify-between items-center">
+              <div>
+                <CardTitle>Journal History</CardTitle>
+                <CardDescription>Your past reflections</CardDescription>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Journal History</CardTitle>
-              <CardDescription>Your recent journal entries</CardDescription>
-            </div>
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {dataLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent"></div>
-              </div>
-            ) : entries.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No journal entries yet</p>
-                <p className="text-sm">Write your first entry to see history</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {[...entries]
-                  .reverse()
-                  .slice(0, 5)
-                  .map((entry, index) => (
-                    <div key={index} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-2">
+              <BookOpen className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {dataLoading ? (
+                <div className="text-center py-8">Loading entries...</div>
+              ) : entries.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No entries found.
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {[...entries].reverse().map((entry, i) => (
+                    <div
+                      key={i}
+                      className="p-4 border rounded-md flex justify-between items-start"
+                    >
+                      <div>
                         <div className="font-medium">{entry.title}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-sm text-muted-foreground">
                           {new Date(entry.timestamp).toLocaleDateString()}
+                          {entry.tag ? ` • ${entry.tag}` : ""}
                         </div>
+                        <p className="text-sm mt-2 line-clamp-2">
+                          {entry.content}
+                        </p>
                       </div>
-                      <p className="text-sm line-clamp-2">{entry.content}</p>
+                      <div className="flex gap-2 mt-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setSelectedEntry(entry)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          onClick={() => handleDelete(entry)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog
+        open={!!selectedEntry}
+        onOpenChange={() => setSelectedEntry(null)}
+      >
+        <DialogContent>
+          {selectedEntry && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedEntry.title}</DialogTitle>
+              </DialogHeader>
+              <div className="text-sm text-muted-foreground mb-2">
+                {new Date(selectedEntry.timestamp).toLocaleString()}{" "}
+                {selectedEntry.tag && ` • ${selectedEntry.tag}`}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <p className="whitespace-pre-wrap">{selectedEntry.content}</p>
+              {selectedEntry.insight && (
+                <div className="mt-4 text-sm italic text-yellow-800 bg-yellow-50 p-2 rounded border border-yellow-200">
+                  Insight: {selectedEntry.insight}
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

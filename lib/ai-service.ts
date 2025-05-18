@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export async function generateTherapyResponse(prompt: string) {
+export async function generateTherapyResponse(
+  prompt: string,
+  aiResponseStyle: string
+) {
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
 
@@ -14,8 +17,8 @@ export async function generateTherapyResponse(prompt: string) {
 
     const therapyPrompt = `As an AI therapist, respond to the following message with empathy, 
     insight, and therapeutic techniques. Maintain a supportive tone and offer thoughtful 
-    perspectives. Keep responses concise but meaningful, without any additional text..
-    
+    perspectives. Keep responses concise but meaningful, without any additional text.
+    Response style: "${aiResponseStyle}"
     User message: "${prompt}"`;
 
     // Generate content with safety settings

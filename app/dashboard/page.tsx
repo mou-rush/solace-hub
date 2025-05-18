@@ -4,34 +4,29 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { ActionCard } from "@/components/dashboard/ActionCard";
+import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
+import { QuickActionsGrid } from "@/components/dashboard/QuickActionsGrid";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  ArrowRight,
   BarChart,
   BookOpen,
-  Calendar,
   MessageSquare,
+  Calendar,
+  Smile,
 } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  interface Mood {
-    mood: string;
-    timestamp: string;
-  }
 
-  const [lastMood, setLastMood] = useState<Mood | null>(null);
-  const [therapySessions, setTherapySessions] = useState(0);
-  const [journalEntries, setJournalEntries] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [userData, setUserData] = useState({
+    lastMood: null,
+    therapySessions: 0,
+    journalEntries: 0,
+    streak: 0,
+  });
 
   const [loading, setLoading] = useState(true);
   const [tip, setTip] = useState("Loading...");
@@ -57,34 +52,46 @@ export default function Dashboard() {
       setLoading(true);
 
       try {
-        // ✅ Mood
         const moodDoc = await getDoc(doc(db, "moods", user.uid));
+        let lastMood = null;
+        let streak = 0;
+
         if (moodDoc.exists()) {
           const moodData = moodDoc.data();
           const entries = moodData.entries || [];
-          if (entries.length > 0) {
-            setLastMood(entries[entries.length - 1]);
 
-            // Optional: Simple streak logic
+          if (entries.length > 0) {
+            lastMood = entries[entries.length - 1];
+
             const today = new Date().toDateString();
             const days = new Set(
-              entries.map((e: any) => new Date(e.timestamp).toDateString())
+              entries.map((e) => new Date(e.timestamp).toDateString())
             );
-            setStreak(days.has(today) ? days.size : 0);
+            streak = days.has(today) ? days.size : 0;
           }
         }
 
-        // ✅ Journal entries (from subcollection)
+        let totalJournalEntries = 0;
         const journalSnapshot = await getDocs(
           collection(db, "users", user.uid, "journal")
         );
-        setJournalEntries(journalSnapshot.size);
 
-        // ✅ Therapy sessions (from "chats" subcollection)
+        journalSnapshot.forEach((doc) => {
+          const data = doc.data();
+          const entries = data.entries || [];
+          totalJournalEntries += entries.length;
+        });
+
         const chatSnapshot = await getDocs(
-          collection(db, "users", user.uid, "chats")
+          collection(db, "users", user.uid, "sessions")
         );
-        setTherapySessions(chatSnapshot.size);
+        console.log("totalJournalEntries", totalJournalEntries);
+        setUserData({
+          lastMood,
+          therapySessions: chatSnapshot.size,
+          journalEntries: totalJournalEntries,
+          streak,
+        });
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -96,11 +103,7 @@ export default function Dashboard() {
   }, [user]);
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const getTimeOfDay = () => {
@@ -110,177 +113,96 @@ export default function Dashboard() {
     return "evening";
   };
 
+  const statCards = [
+    {
+      title: "Current Mood",
+      value: userData.lastMood ? userData.lastMood.mood : "Not tracked yet",
+      icon: <Smile />,
+      subtext: userData.lastMood
+        ? `Last updated: ${new Date(
+            userData.lastMood.timestamp
+          ).toLocaleDateString()}`
+        : "Track your first mood",
+      linkText: "Update",
+      linkHref: "/dashboard/mood",
+    },
+    {
+      title: "Therapy Sessions",
+      value: userData.therapySessions,
+      icon: <MessageSquare />,
+      subtext:
+        userData.therapySessions === 0
+          ? "Start your first session"
+          : "Continue your journey",
+      linkText: "Begin therapy",
+      linkHref: "/dashboard/chat",
+    },
+    {
+      title: "Journal Entries",
+      value: userData.journalEntries,
+      icon: <BookOpen />,
+      subtext: "Write your thoughts",
+      linkText: "New entry",
+      linkHref: "/dashboard/journal",
+    },
+    {
+      title: "Streak",
+      value: `${userData.streak} day${userData.streak === 1 ? "" : "s"}`,
+      icon: <Calendar />,
+      subtext: "Keep up your daily check-ins",
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: "Talk to AI Therapist",
+      description: "Start a supportive conversation",
+      icon: <MessageSquare />,
+      href: "/dashboard/chat",
+    },
+    {
+      title: "Journal Entry",
+      description: "Record your thoughts and feelings",
+      icon: <BookOpen />,
+      href: "/dashboard/journal",
+    },
+    {
+      title: "Track Mood",
+      description: "Log how you're feeling today",
+      icon: <BarChart />,
+      href: "/dashboard/mood",
+    },
+    {
+      title: "Resources",
+      description: "Access helpful mental health content",
+      icon: <Calendar />,
+      href: "/dashboard/resources",
+    },
+  ];
+
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">
-          Good {getTimeOfDay()}, {user?.displayName?.split(" ")[0]}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome to your mental health dashboard
-        </p>
-      </div>
+    <div className="p-6 max-w-7xl mx-auto">
+      <DashboardHeader
+        name={user?.displayName?.split(" ")[0]}
+        timeOfDay={getTimeOfDay()}
+      />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Current Mood</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {lastMood ? lastMood.mood : "Not tracked yet"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {lastMood
-                ? `Last updated: ${new Date(
-                    lastMood.timestamp
-                  ).toLocaleDateString()}`
-                : "Track your first mood"}
-            </p>
-            <Button variant="link" className="p-0 h-auto mt-2" asChild>
-              <Link href="/dashboard/mood">
-                Update <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Therapy Sessions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{therapySessions}</div>
-
-            <p className="text-xs text-muted-foreground mt-1">
-              {therapySessions === 0
-                ? "Start your first session"
-                : " Continue your journey"}
-            </p>
-
-            <Button variant="link" className="p-0 h-auto mt-2" asChild>
-              <Link href="/dashboard/chat">
-                Begin therapy <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Journal Entries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{journalEntries}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Write your thoughts
-            </p>
-            <Button variant="link" className="p-0 h-auto mt-2" asChild>
-              <Link href="/dashboard/journal">
-                New entry <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Streak</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {`${streak} day${streak === 1 ? "" : "s"}`}
-            </div>
-
-            <p className="text-xs text-muted-foreground mt-1">
-              Keep up your daily check-ins
-            </p>
-          </CardContent>
-        </Card>
+        {statCards.map((card, index) => (
+          <StatCard key={index} {...card} />
+        ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Access your most important tools</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Link href="/dashboard/chat">
-                <div className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="mr-4 rounded-full bg-teal-100 p-2">
-                    <MessageSquare className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Talk to AI Therapist</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Start a supportive conversation
-                    </p>
-                  </div>
-                </div>
-              </Link>
-              <Link href="/dashboard/journal">
-                <div className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="mr-4 rounded-full bg-teal-100 p-2">
-                    <BookOpen className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Journal Entry</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Record your thoughts and feelings
-                    </p>
-                  </div>
-                </div>
-              </Link>
-              <Link href="/dashboard/mood">
-                <div className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="mr-4 rounded-full bg-teal-100 p-2">
-                    <BarChart className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Track Mood</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Log how you're feeling today
-                    </p>
-                  </div>
-                </div>
-              </Link>
-              <Link href="/dashboard/resources">
-                <div className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="mr-4 rounded-full bg-teal-100 p-2">
-                    <Calendar className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Resources</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Access helpful mental health content
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-3">
+        <ActionCard
+          title="Quick Actions"
+          description="Access your most important tools"
+          className="md:col-span-2"
+        >
+          <QuickActionsGrid actions={quickActions} />
+        </ActionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Tip</CardTitle>
-            <CardDescription>Mental health insight for today</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{tip}</p>
-            <Button variant="link" className="p-0 h-auto mt-4" asChild>
-              <Link href="/dashboard/resources">
-                More tips <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <DailyTipCard tip={tip} />
       </div>
     </div>
   );

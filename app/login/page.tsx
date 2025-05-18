@@ -20,21 +20,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Heart } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
+  const { success, error } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -42,17 +41,14 @@ export default function Login() {
       );
       const user = userCredential.user;
 
-      // Check if the user document exists before updating
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
-        // Document exists, update last login time
         await updateDoc(userDocRef, {
           lastLogin: new Date().toISOString(),
         });
       } else {
-        // Document doesn't exist, create it with initial data
         await setDoc(userDocRef, {
           email: user.email,
           displayName: user.displayName || null,
@@ -61,18 +57,34 @@ export default function Login() {
         });
       }
 
-      toast({
+      success({
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
 
       router.push("/dashboard");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast({
+    } catch (errorMessage: any) {
+      console.error("Login error:", errorMessage);
+      if (errorMessage.code === "auth/invalid-credential") {
+        errorMessage.message =
+          "Invalid credentials. Please check your email and password.";
+      } else if (errorMessage.code === "auth/wrong-password") {
+        errorMessage.message = "Incorrect password. Please try again.";
+      } else if (errorMessage.code === "auth/invalid-email") {
+        errorMessage.message = "Invalid email format.";
+      } else if (errorMessage.code === "auth/too-many-requests") {
+        errorMessage.message =
+          "Too many login attempts. Please try again later.";
+      } else if (errorMessage.code === "auth/network-request-failed") {
+        errorMessage.message = "Network error. Please check your connection.";
+      } else {
+        errorMessage.message =
+          "An unexpected error occurred. Please try again.";
+      }
+
+      error({
         title: "Login failed",
-        description: error.message,
-        variant: "destructive",
+        description: errorMessage.message,
       });
     } finally {
       setLoading(false);
