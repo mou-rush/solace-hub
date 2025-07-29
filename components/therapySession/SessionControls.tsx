@@ -24,18 +24,18 @@ import { exportSessionAsText } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 
 type SessionControlsProps = {
-  shareSessionLink: () => void;
-  setIsSettingsOpen: (isOpen: boolean) => void;
-  createNewSession: () => void;
-  setShowHistory: (isOpen: boolean) => void;
-  showHistory: boolean;
-  isNotesOpen: boolean;
-  setIsNotesOpen: (isOpen: boolean) => void;
-  sessionGoals: string[];
-  messages: string[];
-  sessionDate: Date;
-  sessionTheme: string;
-  sessionNotes: string;
+  readonly shareSessionLink: () => void;
+  readonly setIsSettingsOpen: (isOpen: boolean) => void;
+  readonly createNewSession: () => void;
+  readonly setShowHistory: (isOpen: boolean) => void;
+  readonly showHistory: boolean;
+  readonly isNotesOpen: boolean;
+  readonly setIsNotesOpen: (isOpen: boolean) => void;
+  readonly sessionGoals: string[];
+  readonly messages: string[];
+  readonly sessionDate: Date;
+  readonly sessionTheme: string;
+  readonly sessionNotes: string;
 };
 export function SessionControls({
   shareSessionLink,
@@ -53,7 +53,7 @@ export function SessionControls({
   sessionNotes,
 }: SessionControlsProps) {
   const { success } = useToast();
-  console.log("isNotesOpen", isNotesOpen);
+
   const handleExportSessionAsText = () => {
     exportSessionAsText(
       sessionGoals,

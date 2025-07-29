@@ -1,6 +1,9 @@
 "use client";
-
-export function DashboardHeader({ name, timeOfDay }) {
+interface DashboardHeaderProps {
+  readonly name: string;
+  readonly timeOfDay: "morning" | "afternoon" | "evening";
+}
+export function DashboardHeader({ name, timeOfDay }: DashboardHeaderProps) {
   return (
     <div className="mb-8 animate-fade-in">
       <h1 className="text-3xl font-bold tracking-tight">

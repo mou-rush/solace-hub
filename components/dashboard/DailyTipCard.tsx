@@ -12,10 +12,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
+interface Quote {
+  q: string;
+  a: string;
+}
+
 export function DailyTipCard() {
-  const [quote, setQuote] = useState(null);
+  const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchQuote = async () => {
     try {

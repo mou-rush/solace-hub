@@ -8,7 +8,18 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-export function ActionCard({ title, description, children, className = "" }) {
+interface ActionCardProps {
+  readonly title: string;
+  readonly description?: string;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
+}
+export function ActionCard({
+  title,
+  description,
+  children,
+  className = "",
+}: ActionCardProps) {
   return (
     <Card className={`shadow-md hover:shadow-lg transition-all ${className}`}>
       <CardHeader>

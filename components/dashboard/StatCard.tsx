@@ -5,7 +5,23 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-export function StatCard({ title, value, icon, subtext, linkText, linkHref }) {
+interface StatCardProps {
+  readonly title: string;
+  readonly value: string | number;
+  readonly icon: React.ReactNode;
+  readonly subtext?: string;
+  readonly linkText?: string;
+  readonly linkHref?: string;
+}
+
+export function StatCard({
+  title,
+  value,
+  icon,
+  subtext,
+  linkText,
+  linkHref,
+}: StatCardProps) {
   return (
     <Card className="overflow-hidden border-none shadow-md transition-all hover:shadow-lg">
       <CardHeader className="pb-2 flex flex-row items-center justify-between bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">

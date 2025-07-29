@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 
-export function QuickActionsGrid({ actions }) {
+interface QuickActionProps {
+  actions: {
+    title: string;
+    description: string;
+    href: string;
+    icon: React.ReactNode;
+  }[];
+}
+
+export function QuickActionsGrid({ actions }: QuickActionProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {actions.map((action, index) => (

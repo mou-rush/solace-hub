@@ -10,18 +10,20 @@ import {
   Download,
   Save,
   FileText,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { exportSessionAsText } from "@/lib/utils";
+import { exportSessionAsPDF, exportSessionAsText } from "@/lib/utils";
+import { useState } from "react";
 
 interface SessionNotesPanelProps {
   isNotesOpen: boolean;
   sessionTheme: string;
   setSessionTheme: (value: string) => void;
-  messages: string[];
+  messages: any[];
   sessionNotes: string;
   saveSessionData: () => void;
   setSessionNotes: (value: string) => void;
@@ -50,21 +52,57 @@ export const SessionNotesPanel = ({
   sessionDate,
   sessionNotes,
 }: SessionNotesPanelProps) => {
-  const { success } = useToast();
+  const { success, error } = useToast();
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const handleExportSessionAsText = () => {
-    exportSessionAsText(
-      sessionGoals,
-      messages,
-      sessionTheme,
-      sessionDate,
-      sessionNotes
-    );
-    success({
-      title: "Session Exported",
-      description: "Your session has been exported as a text file.",
-    });
+    try {
+      exportSessionAsText(
+        sessionGoals,
+        messages,
+        sessionTheme,
+        sessionDate,
+        sessionNotes
+      );
+      success({
+        title: "Session Exported",
+        description: "Your session has been exported as a text file.",
+      });
+    } catch (err) {
+      error({
+        title: "Export Failed",
+        description: "Failed to export session as text file.",
+      });
+    }
   };
+
+  const handleExportSessionAsPDF = async () => {
+    if (isExportingPDF) return;
+
+    setIsExportingPDF(true);
+    try {
+      await exportSessionAsPDF(
+        sessionTheme,
+        sessionDate,
+        sessionGoals,
+        sessionNotes,
+        messages
+      );
+      success({
+        title: "PDF Generated",
+        description: "Your session has been exported as a PDF file.",
+      });
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      error({
+        title: "PDF Export Failed",
+        description: "Failed to generate PDF. Please try again.",
+      });
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   return (
     <Card
       className={`transition-all duration-300 overflow-hidden ${
@@ -127,8 +165,15 @@ export const SessionNotesPanel = ({
                     onChange={(e) => setNewGoal(e.target.value)}
                     placeholder="Enter a new goal or focus area..."
                     className="flex-1"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        addSessionGoal();
+                      }
+                    }}
                   />
-                  <Button onClick={addSessionGoal}>Add</Button>
+                  <Button onClick={addSessionGoal} disabled={!newGoal.trim()}>
+                    Add
+                  </Button>
                 </div>
               </div>
 
@@ -143,14 +188,15 @@ export const SessionNotesPanel = ({
                     {sessionGoals.map((goal, index) => (
                       <li
                         key={index}
-                        className="flex items-center justify-between bg-secondary/50 p-2 rounded-md"
+                        className="flex items-center justify-between bg-secondary/50 p-3 rounded-md border border-border/50 hover:bg-secondary/70 transition-colors"
                       >
-                        <span className="text-sm">{goal}</span>
+                        <span className="text-sm flex-1 mr-2">{goal}</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => removeSessionGoal(index)}
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                          title="Remove goal"
                         >
                           <XCircle className="h-4 w-4" />
                         </Button>
@@ -169,58 +215,70 @@ export const SessionNotesPanel = ({
 
           <TabsContent value="info">
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-sm font-medium">Session Date</p>
-                  <div className="flex items-center mt-1 text-sm">
-                    <Calendar className="mr-2 h-4 w-4" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary/30 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Session Date
+                  </p>
+                  <div className="flex items-center text-sm font-medium">
+                    <Calendar className="mr-2 h-4 w-4 text-primary" />
                     {format(sessionDate, "PPP")}
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-sm font-medium">Session Time</p>
-                  <div className="flex items-center mt-1 text-sm">
-                    <Clock className="mr-2 h-4 w-4" />
+                <div className="bg-secondary/30 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Session Time
+                  </p>
+                  <div className="flex items-center text-sm font-medium">
+                    <Clock className="mr-2 h-4 w-4 text-primary" />
                     {format(sessionDate, "p")}
                   </div>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium">Session Summary</p>
-                <div className="bg-secondary/50 p-3 rounded-md mt-1">
-                  <p className="text-sm">
+                <p className="text-sm font-medium mb-2">Session Summary</p>
+                <div className="bg-gradient-to-r from-secondary/50 to-secondary/30 p-4 rounded-lg border border-border/50">
+                  <h3 className="font-medium text-base mb-2">
                     {sessionTheme || "Untitled Session"}
+                  </h3>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p>Messages: {messages.length}</p>
                     {sessionGoals.length > 0 && (
-                      <>
-                        <br />
-                        <span className="text-muted-foreground">
-                          Working on {sessionGoals.length} goal
-                          {sessionGoals.length !== 1 ? "s" : ""}
-                        </span>
-                      </>
+                      <p>
+                        Goals: {sessionGoals.length} active goal
+                        {sessionGoals.length !== 1 ? "s" : ""}
+                      </p>
                     )}
-                  </p>
+                    {sessionNotes.trim() && (
+                      <p>Notes: {sessionNotes.length} characters</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={handleExportSessionAsText}
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 hover:bg-secondary/80"
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Export
+                  Export TXT
                 </Button>
                 <Button
-                  onClick={shareSessionLink}
+                  onClick={handleExportSessionAsPDF}
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 hover:bg-secondary/80"
+                  disabled={isExportingPDF}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  PDF Report
+                  {isExportingPDF ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  {isExportingPDF ? "Generating..." : "Export PDF"}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import {
@@ -11,91 +10,10 @@ import {
   orderBy,
   onSnapshot,
   updateDoc,
-  getDocs,
-  where,
-  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  MoreHorizontal,
-  Send,
-  Mic,
-  MicOff,
-  XCircle,
-  PenLine,
-  Calendar,
-  Clock,
-  ThumbsUp,
-  ThumbsDown,
-  Smile,
-  Frown,
-  Meh,
-  Download,
-  History,
-  Settings,
-  Save,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  RefreshCw,
-  Menu,
-  FileText,
-} from "lucide-react";
 import { useToast } from "@/hooks/useToast";
-
-import { generateTherapyResponse } from "@/lib/ai-service";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { MoodSelector } from "./MoodSelector";
 import { SessionControls } from "./SessionControls";
 import { SessionNotesPanel } from "./SessionNotesPanel";
@@ -123,6 +41,12 @@ export default function TherapySession() {
   const [aiResponseStyle, setAiResponseStyle] = useState("balanced");
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  const [initializedSessions, setInitializedSessions] = useState<Set<string>>(
+    new Set()
+  );
+
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
+
   const { user } = useAuth();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -130,6 +54,8 @@ export default function TherapySession() {
   // Load chat history for current session
   useEffect(() => {
     if (!user || !sessionId) return;
+
+    setMessagesLoaded(false);
 
     const chatRef = collection(
       db,
@@ -147,6 +73,7 @@ export default function TherapySession() {
         ...doc.data(),
       }));
       setMessages(messages);
+      setMessagesLoaded(true);
     });
 
     const loadSessionInfo = async () => {
@@ -198,8 +125,18 @@ export default function TherapySession() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // We are only adding greeting message when:
+  // 1. Messages have been loaded from Firebase
+  // 2. The session has no messages
+  // 3. We haven't already initialized this session
   useEffect(() => {
-    if (messages.length === 0 && user && sessionId) {
+    if (
+      messagesLoaded &&
+      messages.length === 0 &&
+      user &&
+      sessionId &&
+      !initializedSessions.has(sessionId)
+    ) {
       const chatRef = collection(
         db,
         "users",
@@ -216,8 +153,10 @@ export default function TherapySession() {
         sender: "ai",
         timestamp: serverTimestamp(),
       });
+
+      setInitializedSessions((prev) => new Set([...prev, sessionId]));
     }
-  }, [user, messages.length, sessionId]);
+  }, [user, messages.length, sessionId, messagesLoaded, initializedSessions]);
 
   const createNewSession = async () => {
     if (!user) return;
@@ -235,6 +174,7 @@ export default function TherapySession() {
     setSessionTheme("New Therapy Session");
     setSessionNotes("");
     setSessionGoals([]);
+    setMessagesLoaded(false);
 
     success({
       title: "New Session Created",
