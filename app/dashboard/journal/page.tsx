@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -15,7 +14,10 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/useToast";
 
 import { useAuth } from "@/components/auth-provider";
-import { analyzeJournalEntry } from "@/lib/ai-service";
+import {
+  analyzeJournalEntry,
+  getAdvancedJournalAnalysis,
+} from "@/lib/ai-service";
 import {
   doc,
   getDoc,
@@ -106,13 +108,31 @@ export default function JournalPage() {
   };
 
   const getAIInsight = async () => {
-    if (!content) return;
+    if (!content || !user) return;
     setAnalyzing(true);
     try {
+      /* Using advanced analysis if available */
+      const analysis = await getAdvancedJournalAnalysis(
+        content,
+        user.uid,
+        entries.map((e) => e.content)
+      );
+
+      setInsight(analysis.insight);
+
+      if (analysis.themes.length > 0) {
+        console.log("Detected themes:", analysis.themes);
+      }
+
+      if (analysis.sentiment) {
+        console.log("Sentiment analysis:", analysis.sentiment);
+      }
+    } catch (err) {
+      error({ title: "Advanced analysis failed, using basic:" });
+      console.error(err);
+      /* Fallback to basic analysis */
       const response = await analyzeJournalEntry(content);
       setInsight(response);
-    } catch {
-      error({ title: "AI analysis failed" });
     } finally {
       setAnalyzing(false);
     }

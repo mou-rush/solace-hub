@@ -21,6 +21,7 @@ import { MessageFeedback } from "./MessageFeedback";
 import { AISettings } from "./AISettings";
 import { SessionHistory } from "./SessionHistory";
 import { ChatForm } from "./ChatForm";
+import { InsightsModal } from "@/components/ai-insights/InsightPanel"; // New modal import
 
 export default function TherapySession() {
   const { success } = useToast();
@@ -30,7 +31,7 @@ export default function TherapySession() {
   const [sessionTheme, setSessionTheme] = useState("");
   const [sessionNotes, setSessionNotes] = useState("");
   const [sessionDate, setSessionDate] = useState<Date>(new Date());
-  const [currentMood, setCurrentMood] = useState<string | null>(null);
+  const [currentMood, setCurrentMood] = useState<string | undefined>(undefined);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [savedSessions, setSavedSessions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -40,6 +41,9 @@ export default function TherapySession() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [aiResponseStyle, setAiResponseStyle] = useState("balanced");
   const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [hasNewInsights, setHasNewInsights] = useState(false);
 
   const [initializedSessions, setInitializedSessions] = useState<Set<string>>(
     new Set()
@@ -51,7 +55,14 @@ export default function TherapySession() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load chat history for current session
+  /* Check for new insights when messages change */
+  useEffect(() => {
+    if (messages.length >= 5 && messages.length % 5 === 0) {
+      setHasNewInsights(true);
+    }
+  }, [messages.length]);
+
+  /* Load chat history for current session */
   useEffect(() => {
     if (!user || !sessionId) return;
 
@@ -125,7 +136,7 @@ export default function TherapySession() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // We are only adding greeting message when:
+  // NoteToMyself: We are only adding greeting message when:
   // 1. Messages have been loaded from Firebase
   // 2. The session has no messages
   // 3. We haven't already initialized this session
@@ -223,14 +234,41 @@ export default function TherapySession() {
   };
 
   const shareSessionLink = () => {
-    // TODO:
-    // This would generate a shareable link to the session
-    // For now just show a toast
     success({
       title: "Session Link Generated",
       description: "The link has been copied to your clipboard. (Demo only)",
     });
   };
+
+  const getInsightsStatus = () => {
+    const userMessageCount = messages.filter(
+      (msg) => msg.sender === "user"
+    ).length;
+
+    if (userMessageCount < 3) {
+      return {
+        available: false,
+        reason: `Need ${3 - userMessageCount} more messages`,
+        color: "text-gray-400",
+      };
+    }
+
+    if (hasNewInsights) {
+      return {
+        available: true,
+        reason: "New insights available!",
+        color: "text-purple-600",
+      };
+    }
+
+    return {
+      available: true,
+      reason: "Ready for analysis",
+      color: "text-green-600",
+    };
+  };
+
+  const insightsStatus = getInsightsStatus();
 
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden">
@@ -253,20 +291,28 @@ export default function TherapySession() {
       ) : (
         <>
           <div className="p-4">
-            <SessionControls
-              setShowHistory={setShowHistory}
-              showHistory={showHistory}
-              isNotesOpen={isNotesOpen}
-              setIsNotesOpen={setIsNotesOpen}
-              shareSessionLink={shareSessionLink}
-              setIsSettingsOpen={setIsSettingsOpen}
-              createNewSession={createNewSession}
-              sessionGoals={sessionGoals}
-              messages={messages}
-              sessionTheme={sessionTheme}
-              sessionDate={sessionDate}
-              sessionNotes={sessionNotes}
-            />
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <SessionControls
+                setShowHistory={setShowHistory}
+                showHistory={showHistory}
+                isNotesOpen={isNotesOpen}
+                setIsNotesOpen={setIsNotesOpen}
+                shareSessionLink={shareSessionLink}
+                setIsSettingsOpen={setIsSettingsOpen}
+                createNewSession={createNewSession}
+                sessionGoals={sessionGoals}
+                messages={messages}
+                sessionTheme={sessionTheme}
+                sessionDate={sessionDate}
+                sessionNotes={sessionNotes}
+                setShowInsightsModal={setShowInsightsModal}
+                showInsightsModal={showInsightsModal}
+                setHasNewInsights={setHasNewInsights}
+                hasNewInsights={hasNewInsights}
+                insightsStatus={insightsStatus}
+              />
+            </div>
+
             <SessionNotesPanel
               sessionTheme={sessionTheme}
               setSessionTheme={setSessionTheme}
@@ -279,7 +325,6 @@ export default function TherapySession() {
               addSessionGoal={addSessionGoal}
               removeSessionGoal={removeSessionGoal}
               sessionDate={sessionDate}
-              shareSessionLink={shareSessionLink}
               isNotesOpen={isNotesOpen}
               messages={messages}
             />
@@ -354,11 +399,14 @@ export default function TherapySession() {
               messages={messages}
               setLoading={setLoading}
               loading={loading}
+              currentMood={currentMood}
+              sessionGoals={sessionGoals}
             />
           </div>
         </>
       )}
 
+      {/* AI Settings Modal */}
       <AISettings
         setAiResponseStyle={setAiResponseStyle}
         isSettingsOpen={isSettingsOpen}
@@ -366,6 +414,19 @@ export default function TherapySession() {
         aiResponseStyle={aiResponseStyle}
         setShowSuggestions={setShowSuggestions}
         showSuggestions={showSuggestions}
+      />
+
+      {/* AI Insights Full-Screen Modal */}
+      <InsightsModal
+        userId={user?.uid || ""}
+        conversationHistory={messages.map((msg) => ({
+          text: msg.text,
+          sender: msg.sender,
+          timestamp: msg.timestamp?.toDate() || new Date(),
+        }))}
+        currentMood={currentMood}
+        isOpen={showInsightsModal}
+        onClose={() => setShowInsightsModal(false)}
       />
     </div>
   );

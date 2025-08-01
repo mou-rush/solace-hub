@@ -33,7 +33,6 @@ interface SessionNotesPanelProps {
   sessionGoals: string[];
   removeSessionGoal: (index: number) => void;
   sessionDate: Date;
-  shareSessionLink: () => void;
 }
 
 export const SessionNotesPanel = ({
@@ -45,7 +44,7 @@ export const SessionNotesPanel = ({
   newGoal,
   addSessionGoal,
   removeSessionGoal,
-  shareSessionLink,
+
   sessionGoals,
   messages,
   sessionTheme,
