@@ -1,101 +1,107 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, RefreshCw } from "lucide-react";
-import Link from "next/link";
-
-interface Quote {
-  q: string;
-  a: string;
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Heart } from "lucide-react";
+interface DailyTipCardProps {
+  userData: {
+    therapySessions: number;
+    journalEntries: number;
+    streak: number;
+  };
 }
 
-export function DailyTipCard() {
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchQuote = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch("/api/daily-quote", {
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setQuote(data[0]);
-      } else {
-        throw new Error("Invalid response format from API");
-      }
-    } catch (err) {
-      console.error("Error fetching quote:", err);
-      setError("Could not load today's quote. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
+export function DailyTipCard({ userData }: DailyTipCardProps) {
+  const [tip, setTip] = useState("Loading...");
 
   useEffect(() => {
-    fetchQuote();
+    const fetchTip = async () => {
+      try {
+        const response = await fetch("https://zenquotes.io/api/today");
+        const data = await response.json();
+        setTip(`${data[0]?.q} — ${data[0]?.a}`);
+      } catch (err) {
+        console.error("Failed to fetch tip:", err);
+        setTip(
+          "Your mental health journey is a marathon, not a sprint. Every small step counts."
+        );
+      }
+    };
+
+    fetchTip();
   }, []);
 
   return (
-    <Card className="w-full max-w-md shadow-lg">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-bold">Daily Tip</CardTitle>
-        <CardDescription>Mental health insight for today</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+    <div className="space-y-6">
+      <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader className="border-b border-gray-100">
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Heart className="w-5 h-5 text-pink-500" />
+            Daily Insight
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <blockquote className="text-sm italic text-gray-700 border-l-4 border-teal-300 pl-4 py-2 bg-teal-50/50 rounded-r-lg">
+            {tip}
+          </blockquote>
+          <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg border border-blue-100">
+            <p className="text-xs text-blue-800 font-medium">
+              💡 Therapeutic Note
+            </p>
+            <p className="text-xs text-blue-700 mt-1">
+              Remember that healing is not linear. Every step forward, no matter
+              how small, is progress worth celebrating.
+            </p>
           </div>
-        ) : error ? (
-          <div className="text-center py-4 text-red-500">
-            {error}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 mx-auto flex items-center gap-2"
-              onClick={fetchQuote}
-            >
-              <RefreshCw size={16} /> Try Again
-            </Button>
-          </div>
-        ) : quote ? (
-          <div className="space-y-4">
-            <blockquote className="italic text-lg border-l-4 border-primary pl-4 py-2">
-              "{quote.q}"
-            </blockquote>
-            <p className="text-right font-medium">— {quote.a}</p>
-          </div>
-        ) : (
-          <div className="text-center py-4">No quote available</div>
-        )}
+        </CardContent>
+      </Card>
 
-        <Button
-          asChild
-          className="w-full mt-4 flex items-center justify-center gap-2"
-        >
-          <Link href="/tips">
-            More tips <ArrowRight size={16} />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
+      {/* Quick Stats */}
+      <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader className="border-b border-gray-100">
+          <CardTitle className="text-lg font-semibold text-gray-900">
+            Quick Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-sm font-medium text-gray-700">
+                This Week
+              </span>
+              <Badge
+                variant="outline"
+                className="bg-green-50 text-green-700 border-green-200"
+              >
+                Active
+              </Badge>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">
+                  Sessions completed
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {userData.therapySessions}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Journal entries</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {userData.journalEntries}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Consistency</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {userData.streak} days
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

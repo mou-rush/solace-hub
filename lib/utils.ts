@@ -222,3 +222,40 @@ export const exportSessionAsPDF = async (
   const fileName = `SolaceHub_Session_${format(sessionDate, "yyyy-MM-dd")}.pdf`;
   doc.save(fileName);
 };
+
+export const getTimeOfDay = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
+};
+
+export const getMoodStatus = (userData) => {
+  if (!userData.lastMood)
+    return {
+      color: "bg-gray-100",
+      text: "No data",
+      textColor: "text-gray-600",
+    };
+
+  const mood = userData.lastMood.mood.toLowerCase();
+  if (mood.includes("great") || mood.includes("good")) {
+    return {
+      color: "bg-green-100",
+      text: "Positive",
+      textColor: "text-green-700",
+    };
+  } else if (mood.includes("okay")) {
+    return {
+      color: "bg-blue-100",
+      text: "Stable",
+      textColor: "text-blue-700",
+    };
+  } else {
+    return {
+      color: "bg-orange-100",
+      text: "Needs Attention",
+      textColor: "text-orange-700",
+    };
+  }
+};

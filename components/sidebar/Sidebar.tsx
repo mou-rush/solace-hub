@@ -39,13 +39,8 @@ export function Sidebar() {
   const { success, error } = useToast();
 
   const { darkMode, setDarkMode } = useDarkMode();
-  const {
-    expanded,
-    mobileOpen,
-    toggleSidebar,
-    toggleMobileSidebar,
-    closeMobileSidebar,
-  } = useResponsiveSidebar();
+  const { expanded, mobileOpen, toggleSidebar, toggleMobileSidebar } =
+    useResponsiveSidebar();
 
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   //ToDo: Replace with actual data

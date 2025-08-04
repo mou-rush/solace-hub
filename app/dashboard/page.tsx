@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
@@ -9,14 +8,6 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ActionCard } from "@/components/dashboard/ActionCard";
 import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
-import { QuickActionsGrid } from "@/components/dashboard/QuickActionsGrid";
-import {
-  BarChart,
-  BookOpen,
-  MessageSquare,
-  Calendar,
-  Smile,
-} from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -106,103 +97,20 @@ export default function Dashboard() {
     return <DashboardSkeleton />;
   }
 
-  const getTimeOfDay = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "morning";
-    if (hour < 18) return "afternoon";
-    return "evening";
-  };
-
-  const statCards = [
-    {
-      title: "Current Mood",
-      value: userData.lastMood ? userData.lastMood.mood : "Not tracked yet",
-      icon: <Smile />,
-      subtext: userData.lastMood
-        ? `Last updated: ${new Date(
-            userData.lastMood.timestamp
-          ).toLocaleDateString()}`
-        : "Track your first mood",
-      linkText: "Update",
-      linkHref: "/dashboard/mood",
-    },
-    {
-      title: "Therapy Sessions",
-      value: userData.therapySessions,
-      icon: <MessageSquare />,
-      subtext:
-        userData.therapySessions === 0
-          ? "Start your first session"
-          : "Continue your journey",
-      linkText: "Begin therapy",
-      linkHref: "/dashboard/chat",
-    },
-    {
-      title: "Journal Entries",
-      value: userData.journalEntries,
-      icon: <BookOpen />,
-      subtext: "Write your thoughts",
-      linkText: "New entry",
-      linkHref: "/dashboard/journal",
-    },
-    {
-      title: "Streak",
-      value: `${userData.streak} day${userData.streak === 1 ? "" : "s"}`,
-      icon: <Calendar />,
-      subtext: "Keep up your daily check-ins",
-    },
-  ];
-
-  const quickActions = [
-    {
-      title: "Talk to AI Therapist",
-      description: "Start a supportive conversation",
-      icon: <MessageSquare />,
-      href: "/dashboard/chat",
-    },
-    {
-      title: "Journal Entry",
-      description: "Record your thoughts and feelings",
-      icon: <BookOpen />,
-      href: "/dashboard/journal",
-    },
-    {
-      title: "Track Mood",
-      description: "Log how you're feeling today",
-      icon: <BarChart />,
-      href: "/dashboard/mood",
-    },
-    {
-      title: "Resources",
-      description: "Access helpful mental health content",
-      icon: <Calendar />,
-      href: "/dashboard/resources",
-    },
-  ];
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <DashboardHeader
-        name={user?.displayName?.split(" ")[0]}
-        timeOfDay={getTimeOfDay()}
+        userData={userData}
+        mood={userData?.lastMood}
+        userJournalEntries={userData?.journalEntries}
+        userTherapySessions={userData?.therapySessions}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        {statCards.map((card, index) => (
-          <StatCard key={index} {...card} />
-        ))}
-      </div>
+      <StatCard userData={userData} />
 
       <div className="grid gap-6 md:grid-cols-3">
-        <ActionCard
-          title="Quick Actions"
-          description="Access your most important tools"
-          className="md:col-span-2"
-        >
-          <QuickActionsGrid actions={quickActions} />
-        </ActionCard>
-
-        <DailyTipCard tip={tip} />
+        <ActionCard />
+        <DailyTipCard userData={userData} />
       </div>
     </div>
   );

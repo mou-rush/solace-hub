@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
-import { updateProfile, updateEmail } from "firebase/auth";
+import { updateProfile, updateEmail, User } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { updateDoc, doc } from "firebase/firestore";
 import { nanoid } from "nanoid";
@@ -20,18 +20,25 @@ import { useToast } from "@/hooks/useToast";
 
 import { Camera, UserCircle } from "lucide-react";
 
+interface ProfileSettingsProps {
+  setEmail: (email: string) => void;
+  user: User | null;
+  email: string;
+  userName: string;
+  setUserName: (name: string) => void;
+}
 export const ProfileSittings = ({
   setEmail,
   user,
   email,
   userName,
   setUserName,
-}) => {
+}: ProfileSettingsProps) => {
   const { error, success } = useToast();
   const [profileLoading, setProfileLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const imageId = localStorage.getItem(`profilePicId_${user?.uid}`);
@@ -41,7 +48,7 @@ export const ProfileSittings = ({
         setImagePreview(savedImage);
       }
     } else if (user?.photoURL && !user.photoURL.startsWith("profileImage_")) {
-      setImagePreview(user.photoURL);
+      setImagePreview(user?.photoURL);
     }
   }, [user]);
 
@@ -75,7 +82,9 @@ export const ProfileSittings = ({
   };
 
   const handleTriggerFileInput = () => {
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleUpdateProfile = async (e) => {
