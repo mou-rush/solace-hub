@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useAuth } from "@/components/auth-provider";
-import { useToast } from "@/lib/hooks/useToast";
+
+import { useAppStore, useAuthStore } from "@/stores";
 
 interface NotificationsSettingsProps {
   emailNotifications: boolean;
@@ -34,8 +34,9 @@ export const NotificationsSettings = ({
   setSessionReminders,
   setJournalReminders,
 }: NotificationsSettingsProps) => {
-  const { user } = useAuth();
-  const { error, success } = useToast();
+  const { addNotification } = useAppStore();
+  const { user } = useAuthStore();
+
   const [notificationLoading, setNotificationLoading] = useState(false);
 
   const handleUpdateNotifications = async () => {
@@ -53,14 +54,17 @@ export const NotificationsSettings = ({
         updatedAt: new Date().toISOString(),
       });
 
-      success({
+      addNotification({
         title: "Notification preferences updated",
         description: "Your notification settings have been saved",
+
+        variant: "success",
       });
     } catch (errorMessage: any) {
-      error({
+      addNotification({
         title: "Error updating preferences",
         description: errorMessage.message,
+        variant: "error",
       });
     } finally {
       setNotificationLoading(false);

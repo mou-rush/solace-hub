@@ -1,22 +1,22 @@
-"use client";
+import { useAppStore } from "@/stores";
 
-import { useContext } from "react";
-import { ToastContext } from "@/components/toastComponent/ToastProvider";
+export function useToast() {
+  const { addNotification } = useAppStore();
 
-export const useToast = () => {
-  const context = useContext(ToastContext);
-
-  if (context === null) {
-    throw new Error("useToast must be used within a ToastProvider");
-  }
-
-  return {
-    toast: context.toast,
-    success: context.success,
-    error: context.error,
-    info: context.info,
-    warning: context.warning,
-    remove: context.remove,
-    updatePosition: context.updatePosition,
+  const toast = {
+    success: (title: string, description?: string) => {
+      addNotification({ title, description, variant: "success" });
+    },
+    error: (title: string, description?: string) => {
+      addNotification({ title, description, variant: "error" });
+    },
+    warning: (title: string, description?: string) => {
+      addNotification({ title, description, variant: "warning" });
+    },
+    info: (title: string, description?: string) => {
+      addNotification({ title, description, variant: "info" });
+    },
   };
-};
+
+  return { toast };
+}

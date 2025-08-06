@@ -1,35 +1,24 @@
 "use client";
-
-import type React from "react";
-
-import { useState } from "react";
-import Link from "next/link";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { useAppStore, useAuthStore } from "@/stores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Heart } from "lucide-react";
-import { useToast } from "@/lib/hooks/useToast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
-export default function Login() {
+export default function LoginPage() {
+  const router = useRouter();
+  const { addNotification } = useAppStore();
+  const { setUser } = useAuthStore();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { success, error } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -39,29 +28,12 @@ export default function Login() {
         email,
         password
       );
-      const user = userCredential.user;
-
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists()) {
-        await updateDoc(userDocRef, {
-          lastLogin: new Date().toISOString(),
-        });
-      } else {
-        await setDoc(userDocRef, {
-          email: user.email,
-          displayName: user.displayName || null,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-        });
-      }
-
-      success({
+      setUser(userCredential.user);
+      addNotification({
         title: "Welcome back!",
         description: "You've successfully logged in.",
+        variant: "success",
       });
-
       router.push("/dashboard");
     } catch (errorMessage: any) {
       console.error("Login error:", errorMessage);
@@ -81,10 +53,10 @@ export default function Login() {
         errorMessage.message =
           "An unexpected error occurred. Please try again.";
       }
-
-      error({
+      addNotification({
         title: "Login failed",
         description: errorMessage.message,
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -92,58 +64,51 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-teal-50 to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-2">
-            <Heart className="h-10 w-10 text-teal-600" />
+        <CardHeader className="text-center">
+          <div className="w-12 h-12 bg-primary rounded-lg mx-auto mb-4 flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-xl">S</span>
           </div>
-          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access your account
-          </CardDescription>
+          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <p className="text-muted-foreground">
+            Sign in to your SolaceHub account
+          </p>
         </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
               <Input
-                id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div>
               <Input
-                id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col">
-            <Button
-              type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700"
-              disabled={loading}
-            >
-              {loading ? "Logging in..." : "Log in"}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
-            <p className="mt-4 text-center text-sm text-muted-foreground">
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link href="/signup" className="text-teal-600 hover:underline">
+              <Link href="/signup" className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>
-          </CardFooter>
-        </form>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

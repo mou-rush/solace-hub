@@ -1,29 +1,23 @@
 "use client";
 
 import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
-
 import { ThumbsUp, ThumbsDown } from "lucide-react";
-
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAppStore } from "@/stores";
 
 interface MessageFeedbackProps {
-  success: (message: { title: string; description: string }) => void;
   user: any;
   sessionId: string | null;
 }
 
-export const MessageFeedback = ({
-  success,
-  user,
-  sessionId,
-}: MessageFeedbackProps) => {
+export const MessageFeedback = ({ user, sessionId }: MessageFeedbackProps) => {
+  const { addNotification } = useAppStore();
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const handleFeedback = async (value: string) => {
@@ -31,9 +25,11 @@ export const MessageFeedback = ({
 
     setFeedback(value);
 
-    success({
+    addNotification({
       title: "Feedback Recorded",
       description: "Thank you for your feedback on this response.",
+
+      variant: "success",
     });
   };
 

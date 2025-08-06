@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/components/auth-provider";
 import { doc, getDoc, updateDoc, setDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -15,9 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/lib/hooks/useToast";
-
 import { BarChart } from "lucide-react";
+import { useAppStore, useAuthStore } from "@/stores";
 
 const moodOptions = [
   { value: "😊 Great", label: "Great", emoji: "😊" },
@@ -28,13 +26,13 @@ const moodOptions = [
 ];
 
 export default function MoodTracker() {
+  const { addNotification } = useAppStore();
   const [selectedMood, setSelectedMood] = useState("");
   const [notes, setNotes] = useState("");
   const [moodHistory, setMoodHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const { user } = useAuth();
-  const { error, success } = useToast();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchMoodData = async () => {
@@ -48,9 +46,10 @@ export default function MoodTracker() {
         }
       } catch (errorMessage) {
         console.error("Error fetching mood data:", errorMessage);
-        error({
-          title: "Error",
+        addNotification({
+          title: "Error fetching mood data",
           description: "Failed to load mood history",
+          variant: "error",
         });
       } finally {
         setDataLoading(false);
@@ -90,15 +89,17 @@ export default function MoodTracker() {
       setSelectedMood("");
       setNotes("");
 
-      success({
+      addNotification({
         title: "Mood tracked",
         description: "Your mood has been recorded successfully",
+        variant: "success",
       });
     } catch (err) {
       console.error("Error saving mood:", err);
-      error({
+      addNotification({
         title: "Error",
         description: "Failed to save your mood",
+        variant: "error",
       });
     } finally {
       setLoading(false);

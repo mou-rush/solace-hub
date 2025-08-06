@@ -1,4 +1,3 @@
-import { useAuth } from "@/components/auth-provider";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
@@ -19,12 +18,11 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
-import { useToast } from "@/lib/hooks/useToast";
+import { useAppStore, useAuthStore } from "@/stores";
 
 export const SecuritySettings = () => {
-  const { user } = useAuth();
-  const { error, success } = useToast();
-
+  const { user } = useAuthStore();
+  const { addNotification } = useAppStore();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -62,9 +60,11 @@ export const SecuritySettings = () => {
       setNewPassword("");
       setConfirmPassword("");
 
-      success({
+      addNotification({
         title: "Password updated",
         description: "Your password has been changed successfully",
+
+        variant: "success",
       });
     } catch (errorMessage: any) {
       if (errorMessage.code === "auth/wrong-password") {
@@ -73,9 +73,10 @@ export const SecuritySettings = () => {
         setPasswordError(errorMessage.message);
       }
 
-      error({
+      addNotification({
         title: "Error updating password",
         description: errorMessage.message,
+        variant: "error",
       });
     } finally {
       setPasswordLoading(false);

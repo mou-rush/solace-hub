@@ -13,9 +13,9 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/lib/hooks/useToast";
-import { useAuth } from "@/components/auth-provider";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAppStore, useAuthStore } from "@/stores";
 
 interface PrivacySettingsProps {
   dataSharing: boolean;
@@ -29,10 +29,8 @@ export const PrivacySettings = ({
   setDataSharing,
   setAnonymousAnalytics,
 }: PrivacySettingsProps) => {
-  const { user } = useAuth();
-
-  const { error, success } = useToast();
-
+  const { user } = useAuthStore();
+  const { addNotification } = useAppStore();
   const [privacyLoading, setPrivacyLoading] = useState(false);
 
   const handleUpdatePrivacy = async () => {
@@ -49,14 +47,16 @@ export const PrivacySettings = ({
         updatedAt: new Date().toISOString(),
       });
 
-      success({
+      addNotification({
         title: "Privacy preferences updated",
         description: "Your privacy settings have been saved",
+        variant: "success",
       });
     } catch (errorMessage: any) {
-      error({
+      addNotification({
         title: "Error updating preferences",
         description: errorMessage.message,
+        variant: "error",
       });
     } finally {
       setPrivacyLoading(false);

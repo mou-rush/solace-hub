@@ -3,8 +3,8 @@ import { Clock, Users, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
 
-import { useAuth } from "../auth-provider";
 import { getMoodStatus, getTimeOfDay } from "@/lib/utils/utils";
+import { useAuthStore } from "@/stores";
 
 interface DashboardHeaderProps {
   userData: {
@@ -15,7 +15,7 @@ interface DashboardHeaderProps {
   };
 }
 export function DashboardHeader({ userData }: DashboardHeaderProps) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const getEngagementLevel = () => {
     const total = userData.therapySessions + userData.journalEntries;

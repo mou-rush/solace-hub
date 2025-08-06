@@ -2,7 +2,6 @@
 
 import type React from "react";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/components/auth-provider";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -13,9 +12,10 @@ import { SecuritySettings } from "@/components/settings/security-settings/Securi
 import { NotificationsSettings } from "@/components/settings/notifications-settings/NotificationsSettings";
 import { AppearanceSettings } from "@/components/settings/appearance-settings/AppearenceSettings";
 import { PrivacySettings } from "@/components/settings/privacy-settings/PrivacySettings";
+import { useAuthStore } from "@/stores";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");

@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/lib/hooks/useToast";
 
-import { useAuth } from "@/components/auth-provider";
 import {
   analyzeJournalEntry,
   getAdvancedJournalAnalysis,
@@ -34,10 +33,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuthStore } from "@/stores";
 
 export default function JournalPage() {
-  const { user } = useAuth();
-  const { success, error } = useToast();
+  const { user } = useAuthStore();
+  const { toast } = useToast();
 
   const [entries, setEntries] = useState<any[]>([]);
   const [title, setTitle] = useState("");
@@ -99,9 +99,9 @@ export default function JournalPage() {
       setTag("");
       setInsight("");
 
-      success({ title: "Entry saved!" });
+      toast.success("Entry saved!");
     } catch (err) {
-      error({ title: "Failed to save entry" });
+      toast.error("Failed to save entry");
     } finally {
       setLoading(false);
     }

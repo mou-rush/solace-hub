@@ -1,6 +1,5 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "@/components/auth-provider";
 import {
   doc,
   collection,
@@ -22,9 +21,10 @@ import { AISettings } from "./AISettings";
 import { SessionHistory } from "./SessionHistory";
 import { ChatForm } from "./ChatForm";
 import { InsightsModal } from "@/components/ai-insights/InsightPanel"; // New modal import
+import { useAppStore, useAuthStore } from "@/stores";
 
 export default function TherapySession() {
-  const { success } = useToast();
+  const { addNotification } = useAppStore();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ export default function TherapySession() {
 
   const [messagesLoaded, setMessagesLoaded] = useState(false);
 
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -187,9 +187,11 @@ export default function TherapySession() {
     setSessionGoals([]);
     setMessagesLoaded(false);
 
-    success({
+    addNotification({
       title: "New Session Created",
       description: "You've started a new therapy session.",
+
+      variant: "success",
     });
   };
 
@@ -204,9 +206,11 @@ export default function TherapySession() {
       lastUpdated: serverTimestamp(),
     });
 
-    success({
+    addNotification({
       title: "Session Updated",
       description: "Your session details have been saved.",
+
+      variant: "success",
     });
   };
 
@@ -234,9 +238,11 @@ export default function TherapySession() {
   };
 
   const shareSessionLink = () => {
-    success({
+    addNotification({
       title: "Session Link Generated",
       description: "The link has been copied to your clipboard. (Demo only)",
+
+      variant: "info",
     });
   };
 
@@ -364,11 +370,7 @@ export default function TherapySession() {
                           {formatMessageTime(message.timestamp)}
                         </span>
                         {message.sender === "ai" && (
-                          <MessageFeedback
-                            user={user}
-                            sessionId={sessionId}
-                            success={success}
-                          />
+                          <MessageFeedback user={user} sessionId={sessionId} />
                         )}
                       </div>
                     </div>

@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/auth-provider";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -8,9 +7,10 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ActionCard } from "@/components/dashboard/ActionCard";
 import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
+import { useAuthStore } from "@/stores";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const [userData, setUserData] = useState({
     lastMood: null,
