@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { BookOpen, Brain, ChevronRight, Heart, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getMoodStatus } from "@/lib/utils";
+import { getMoodStatus } from "@/lib/utils/utils";
 
 interface StatCardProps {
   readonly userData: {

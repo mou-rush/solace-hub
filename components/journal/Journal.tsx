@@ -11,13 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/lib/hooks/useToast";
 
 import { useAuth } from "@/components/auth-provider";
 import {
   analyzeJournalEntry,
   getAdvancedJournalAnalysis,
-} from "@/lib/ai-service";
+} from "@/lib/ai/ai-service";
 import {
   doc,
   getDoc,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import { NotificationBadge } from "../notificationBadge/NotificationBadge";
 import { ElementType } from "react";
 

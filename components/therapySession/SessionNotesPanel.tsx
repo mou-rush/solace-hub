@@ -12,11 +12,11 @@ import {
   FileText,
   Loader2,
 } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/lib/hooks/useToast";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { exportSessionAsPDF, exportSessionAsText } from "@/lib/utils";
+import { exportSessionAsPDF, exportSessionAsText } from "@/lib/utils/utils";
 import { useState } from "react";
 
 interface SessionNotesPanelProps {

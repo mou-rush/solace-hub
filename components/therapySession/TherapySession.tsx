@@ -12,7 +12,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/lib/hooks/useToast";
 import { format } from "date-fns";
 import { MoodSelector } from "./MoodSelector";
 import { SessionControls } from "./SessionControls";

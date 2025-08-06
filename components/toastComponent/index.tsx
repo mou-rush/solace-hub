@@ -1,7 +1,7 @@
 "use client";
 
 export { ToastProvider } from "./ToastProvider";
-export { useToast } from "../../hooks/useToast";
+export { useToast } from "../../lib/hooks/useToast";
 export type {
   ToastVariant,
   ToastPosition,

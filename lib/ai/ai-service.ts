@@ -2,8 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   EnhancedAIService,
   ConversationContext,
-} from "./ai/enhanced-ai-service";
-import { SentimentAnalyzer } from "./ai/sentiment-analyser";
+} from "@/lib/ai/enhanced-ai-service";
+import { SentimentAnalyzer } from "@/lib/ai/sentiment-analyser";
 
 /* Keep backward compatibility with existing functions */
 let enhancedAI: EnhancedAIService | null = null;

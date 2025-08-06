@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth-provider";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/lib/hooks/useToast";
 
 interface NotificationsSettingsProps {
   emailNotifications: boolean;

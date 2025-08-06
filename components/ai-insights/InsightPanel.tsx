@@ -33,7 +33,7 @@ import {
   getConversationInsights,
   getMoodBasedRecommendations,
   searchMentalHealthResources,
-} from "@/lib/ai-service";
+} from "@/lib/ai/ai-service";
 
 interface InsightsModalProps {
   userId: string;

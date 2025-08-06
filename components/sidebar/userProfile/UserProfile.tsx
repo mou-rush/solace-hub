@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogOut, Moon, Settings, Sun, User, HelpCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,

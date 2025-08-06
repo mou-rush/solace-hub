@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Check, AlertCircle, Info, X, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import { ToastProps } from "./ToastProvider";
 
 export const Toast: React.FC<ToastProps & { onClose: () => void }> = ({

@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import { Toast } from "./Toast";
 import { ToastPosition, ToastProps } from "./ToastProvider";
 

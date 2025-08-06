@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
 
 import { useAuth } from "../auth-provider";
-import { getMoodStatus, getTimeOfDay } from "@/lib/utils";
+import { getMoodStatus, getTimeOfDay } from "@/lib/utils/utils";
 
 interface DashboardHeaderProps {
   userData: {

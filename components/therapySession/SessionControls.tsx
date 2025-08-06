@@ -24,8 +24,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { exportSessionAsText } from "@/lib/utils";
-import { useToast } from "@/hooks/useToast";
+import { exportSessionAsText } from "@/lib/utils/utils";
+import { useToast } from "@/lib/hooks/useToast";
 
 type SessionControlsProps = {
   readonly shareSessionLink: () => void;

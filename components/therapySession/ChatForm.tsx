@@ -22,8 +22,11 @@ import {
   TrendingUp,
   Sparkles,
 } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { getEnhancedTherapyResponse, analyzeSentiment } from "@/lib/ai-service";
+import { useToast } from "@/lib/hooks/useToast";
+import {
+  getEnhancedTherapyResponse,
+  analyzeSentiment,
+} from "@/lib/ai/ai-service";
 import { ConversationContext } from "@/lib/ai/enhanced-ai-service";
 import { User } from "firebase/auth";
 
@@ -291,7 +294,7 @@ export const ChatForm = ({
         }
       } else {
         /* Fallback to basic AI */
-        const { generateTherapyResponse } = await import("@/lib/ai-service");
+        const { generateTherapyResponse } = await import("@/lib/ai/ai-service");
         aiResponse = await generateTherapyResponse(
           userMessage,
           aiResponseStyle
