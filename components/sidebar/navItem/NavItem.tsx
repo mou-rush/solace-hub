@@ -5,6 +5,7 @@ import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import { NotificationBadge } from "../notificationBadge/NotificationBadge";
 import { ElementType } from "react";
+import { useAppStore } from "@/stores";
 
 interface NavItemProps {
   item: {
@@ -14,12 +15,12 @@ interface NavItemProps {
     highlight?: boolean;
     notification?: number;
   };
-  expanded: boolean;
+
   isActive: boolean;
 }
-export const NavItem = ({ item, expanded, isActive }: NavItemProps) => {
+export const NavItem = ({ item, isActive }: NavItemProps) => {
   const Icon = item.icon;
-
+  const { sidebarExpanded } = useAppStore();
   return (
     <Link
       href={item.href}
@@ -32,9 +33,9 @@ export const NavItem = ({ item, expanded, isActive }: NavItemProps) => {
         item.highlight &&
           !isActive &&
           "ring-1 ring-primary/20 hover:ring-primary/40",
-        !expanded && "justify-center"
+        !sidebarExpanded && "justify-center"
       )}
-      title={expanded ? "" : item.label}
+      title={sidebarExpanded ? "" : item.label}
     >
       <div className="relative flex-shrink-0">
         <Icon
@@ -53,7 +54,7 @@ export const NavItem = ({ item, expanded, isActive }: NavItemProps) => {
       <span
         className={cn(
           "transition-all duration-200 truncate",
-          expanded
+          sidebarExpanded
             ? "opacity-100 translate-x-0"
             : "opacity-0 -translate-x-2 w-0 hidden lg:inline-block lg:group-hover:opacity-100 lg:group-hover:translate-x-0"
         )}

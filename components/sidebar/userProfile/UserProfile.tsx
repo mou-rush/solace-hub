@@ -14,24 +14,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { type User as UserType } from "firebase/auth";
+import { useAppStore, useAuthStore } from "@/stores";
 
 interface UserProfileProps {
-  user: UserType | null;
-  expanded: boolean;
   onSignOut: () => void;
-  darkMode: boolean;
-  setDarkMode: (value: boolean) => void;
   onHelpClick: () => void;
 }
-export const UserProfile = ({
-  user,
-  expanded,
-  onSignOut,
-  darkMode,
-  setDarkMode,
-  onHelpClick,
-}: UserProfileProps) => {
+
+export const UserProfile = ({ onSignOut, onHelpClick }: UserProfileProps) => {
+  const { sidebarExpanded, sidebarMobileOpen, theme } = useAppStore();
+  const { user } = useAuthStore();
+
+  const expanded = sidebarExpanded || sidebarMobileOpen;
+  const newTheme = theme === "dark" ? "light" : "dark";
+  const handleChangeTheme = (theme: "light" | "dark" | "system") =>
+    useAppStore.getState().setTheme(theme);
+
   const getInitials = (name: string) => {
     if (!name) return "U";
     return name
@@ -115,7 +113,7 @@ export const UserProfile = ({
             <div className="px-2 py-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {darkMode ? (
+                  {theme ? (
                     <Moon className="h-4 w-4" />
                   ) : (
                     <Sun className="h-4 w-4" />
@@ -124,8 +122,10 @@ export const UserProfile = ({
                 </div>
                 <Switch
                   id="dark-mode"
-                  checked={darkMode}
-                  onCheckedChange={setDarkMode}
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) =>
+                    handleChangeTheme(checked ? "dark" : "light")
+                  }
                 />
               </div>
             </div>
@@ -150,9 +150,9 @@ export const UserProfile = ({
               variant="ghost"
               size="icon"
               className="h-8 w-8 hover:bg-secondary/50 rounded-lg"
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={() => handleChangeTheme(newTheme)}
             >
-              {darkMode ? (
+              {theme ? (
                 <Moon className="h-4 w-4" />
               ) : (
                 <Sun className="h-4 w-4" />
