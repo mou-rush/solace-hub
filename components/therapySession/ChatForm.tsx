@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect, ReactNode } from "react";
 import {
   collection,
@@ -31,14 +30,10 @@ import { ConversationContext } from "@/lib/ai/enhanced-ai-service";
 import { User } from "firebase/auth";
 import { useAppStore, useSessionStore } from "@/stores";
 
-interface EnhancedChatFormProps {
-  sessionId: string | null;
-  user: User | null;
-
-  messages: Array<{ text: string; sender: string; timestamp: Timestamp }>;
-
-  currentMood?: string;
-  sessionGoals?: string[];
+interface Message {
+  text: string;
+  sender: string;
+  timestamp: Timestamp;
 }
 
 interface SmartSuggestion {
@@ -47,25 +42,26 @@ interface SmartSuggestion {
   icon: ReactNode;
 }
 
-export const ChatForm = ({
-  sessionId,
-  user,
+interface ChatFormProps {
+  user: User | null;
+  messages: Message[];
+}
 
-  messages,
-
-  currentMood,
-  sessionGoals = [],
-}: EnhancedChatFormProps) => {
+export const ChatForm = ({ user, messages }: ChatFormProps) => {
   const { addNotification } = useAppStore();
   const {
+    sessionId,
     loading,
-    aiResponseStyle,
-    showSuggestions,
-    setShowSuggestions,
     setLoading,
     enhancedMode,
     setEnhancedMode,
+    aiResponseStyle,
+    showSuggestions,
+    setShowSuggestions,
+    currentMood,
+    sessionGoals,
   } = useSessionStore();
+
   const [input, setInput] = useState("");
   const [speechRecognition, setSpeechRecognition] = useState<any>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -73,7 +69,6 @@ export const ChatForm = ({
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>(
     []
   );
-
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,69 +80,63 @@ export const ChatForm = ({
   }, [sessionId]);
 
   useEffect(() => {
-    if (
-      (typeof window !== "undefined" && "SpeechRecognition" in window) ||
-      "webkitSpeechRecognition" in window
-    ) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
+    if (typeof window === "undefined") return;
 
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .map((result) => result.transcript)
-          .join("");
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
 
-        setInput(transcript);
-      };
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error", event.error);
-        setIsRecording(false);
-        addNotification({
-          variant: "error",
-          title: "Voice Recording Error",
-          description: `Error: ${event.error}. Please try again.`,
-        });
-      };
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0])
+        .map((result) => result.transcript)
+        .join("");
+      setInput(transcript);
+    };
 
-      setSpeechRecognition(recognition);
-    }
-  }, []);
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsRecording(false);
+      addNotification({
+        variant: "error",
+        title: "Voice Recording Error",
+        description: `Error: ${event.error}. Please try again.`,
+      });
+    };
 
-  /* Generate smart suggestions based on conversation context */
+    setSpeechRecognition(recognition);
+  }, [addNotification]);
+
   useEffect(() => {
     if (messages.length > 0 && !loading) {
       generateSmartSuggestions();
     }
-  }, [messages.length, currentMood]);
+  }, [messages.length, currentMood, loading]);
 
-  /* Real-time sentiment analysis as user types */
   useEffect(() => {
-    const analyzeInputSentiment = async () => {
-      if (input.length > 10 && enhancedMode) {
-        try {
-          const sentiment = await analyzeSentiment(input);
-          setSentimentPreview(sentiment);
-        } catch (err) {
-          setSentimentPreview(null);
-        }
-      } else {
+    if (!enhancedMode || input.length <= 10) {
+      setSentimentPreview(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const sentiment = await analyzeSentiment(input);
+        setSentimentPreview(sentiment);
+      } catch {
         setSentimentPreview(null);
       }
-    };
+    }, 500);
 
-    const timeoutId = setTimeout(analyzeInputSentiment, 500);
     return () => clearTimeout(timeoutId);
   }, [input, enhancedMode]);
 
   const generateSmartSuggestions = async () => {
     const suggestions: SmartSuggestion[] = [];
-
-    /* Context-aware suggestions based on last message */
     const lastUserMessage = messages
       .filter((msg) => msg.sender === "user")
       .slice(-1)[0]?.text;
@@ -155,31 +144,34 @@ export const ChatForm = ({
     if (lastUserMessage) {
       const lowerText = lastUserMessage.toLowerCase();
 
-      /* Follow-up suggestions */
       if (lowerText.includes("anxious") || lowerText.includes("worried")) {
-        suggestions.push({
-          text: "Can you tell me more about what's making you feel anxious?",
-          type: "follow-up",
-          icon: <Brain className="h-3 w-3" />,
-        });
-        suggestions.push({
-          text: "I'd like to try some breathing exercises",
-          type: "coping",
-          icon: <Lightbulb className="h-3 w-3" />,
-        });
+        suggestions.push(
+          {
+            text: "Can you tell me more about what's making you feel anxious?",
+            type: "follow-up",
+            icon: <Brain className="h-3 w-3" />,
+          },
+          {
+            text: "I'd like to try some breathing exercises",
+            type: "coping",
+            icon: <Lightbulb className="h-3 w-3" />,
+          }
+        );
       }
 
       if (lowerText.includes("sad") || lowerText.includes("down")) {
-        suggestions.push({
-          text: "What would help me feel a bit better right now?",
-          type: "coping",
-          icon: <TrendingUp className="h-3 w-3" />,
-        });
-        suggestions.push({
-          text: "I want to understand why I'm feeling this way",
-          type: "exploration",
-          icon: <BookOpen className="h-3 w-3" />,
-        });
+        suggestions.push(
+          {
+            text: "What would help me feel a bit better right now?",
+            type: "coping",
+            icon: <TrendingUp className="h-3 w-3" />,
+          },
+          {
+            text: "I want to understand why I'm feeling this way",
+            type: "exploration",
+            icon: <BookOpen className="h-3 w-3" />,
+          }
+        );
       }
 
       if (lowerText.includes("better") || lowerText.includes("good")) {
@@ -191,14 +183,12 @@ export const ChatForm = ({
       }
     }
 
-    /* Mood-based suggestions */
     if (currentMood) {
       const moodSuggestions = getMoodBasedSuggestions(currentMood);
       suggestions.push(...moodSuggestions);
     }
 
-    /* Goal-based suggestions */
-    if (sessionGoals && sessionGoals.length > 0) {
+    if (sessionGoals.length > 0) {
       suggestions.push({
         text: `How am I progressing on my goal: ${sessionGoals[0]}?`,
         type: "reflection",
@@ -239,9 +229,7 @@ export const ChatForm = ({
 
   const handleSuggestion = (suggestion: SmartSuggestion) => {
     setInput(suggestion.text);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   };
 
   const handleSendMessage = async () => {
@@ -261,17 +249,16 @@ export const ChatForm = ({
       "messages"
     );
 
-    await addDoc(chatRef, {
-      text: userMessage,
-      sender: "user",
-      timestamp: serverTimestamp(),
-    });
-
     try {
+      await addDoc(chatRef, {
+        text: userMessage,
+        sender: "user",
+        timestamp: serverTimestamp(),
+      });
+
       let aiResponse: string;
 
       if (enhancedMode) {
-        /* Use enhanced AI with RAG and context */
         const context: ConversationContext = {
           userId: user.uid,
           conversationHistory: messages.map((msg) => ({
@@ -290,8 +277,7 @@ export const ChatForm = ({
         );
         aiResponse = enhancedResponse.response;
 
-        /* Show additional insights if available */
-        if (enhancedResponse.sources && enhancedResponse.sources.length > 0) {
+        if (enhancedResponse.sources?.length) {
           addNotification({
             title: "Enhanced Response",
             description: `Response enhanced with ${enhancedResponse.sources.length} knowledge sources`,
@@ -299,7 +285,6 @@ export const ChatForm = ({
           });
         }
       } else {
-        /* Fallback to basic AI */
         const { generateTherapyResponse } = await import("@/lib/ai/ai-service");
         aiResponse = await generateTherapyResponse(
           userMessage,
@@ -307,14 +292,13 @@ export const ChatForm = ({
         );
       }
 
-      /* Add AI response */
       await addDoc(chatRef, {
         text: aiResponse,
         sender: "ai",
         timestamp: serverTimestamp(),
       });
-    } catch (errorMessage) {
-      console.error("Error getting AI response:", errorMessage);
+    } catch (error) {
+      console.error("Error getting AI response:", error);
       addNotification({
         title: "AI Response Error",
         description: "Failed to get AI response. Please try again.",
@@ -359,7 +343,6 @@ export const ChatForm = ({
 
   const getSentimentColor = (sentiment: any) => {
     if (!sentiment) return "";
-
     if (sentiment.label === "positive")
       return "text-green-600 bg-green-50 border-green-200";
     if (sentiment.label === "negative")
@@ -504,7 +487,6 @@ export const ChatForm = ({
               disabled={loading || isRecording}
             />
 
-            {/* Enhanced Mode Indicator */}
             {enhancedMode && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <Brain className="h-4 w-4 text-purple-600" />
@@ -530,7 +512,7 @@ export const ChatForm = ({
           </Button>
         </form>
 
-        {/* Enhanced Mode Benefits */}
+        {/* Status Indicators */}
         {enhancedMode && (
           <div className="mt-2 text-xs text-purple-600 flex items-center gap-1">
             <Sparkles className="h-3 w-3" />
@@ -540,7 +522,6 @@ export const ChatForm = ({
           </div>
         )}
 
-        {/* Recording Status */}
         {isRecording && (
           <div className="mt-2 flex items-center gap-2 text-sm text-red-600">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
@@ -548,7 +529,6 @@ export const ChatForm = ({
           </div>
         )}
 
-        {/* Analysis Status */}
         {isAnalyzing && enhancedMode && (
           <div className="mt-2 flex items-center gap-2 text-sm text-purple-600">
             <Brain className="h-4 w-4 animate-spin" />

@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/tooltip";
 
 interface MoodSelectorProps {
-  currentMood: null;
-  setCurrentMood: (mood: "happy" | "neutral" | "sad") => void;
+  currentMood: string | undefined;
+  setCurrentMood: (mood: string) => void;
 }
 
 export const MoodSelector = ({
@@ -25,8 +25,8 @@ export const MoodSelector = ({
           <TooltipTrigger asChild>
             <button
               onClick={() => setCurrentMood("happy")}
-              className={`flex flex-col items-center p-2 rounded-full ${
-                currentMood === "happy" ? "bg-green-100" : ""
+              className={`flex flex-col items-center p-2 rounded-full transition-colors ${
+                currentMood === "happy" ? "bg-green-100" : "hover:bg-gray-100"
               }`}
             >
               <Smile className="h-8 w-8 text-green-500" />
@@ -42,8 +42,8 @@ export const MoodSelector = ({
           <TooltipTrigger asChild>
             <button
               onClick={() => setCurrentMood("neutral")}
-              className={`flex flex-col items-center p-2 rounded-full ${
-                currentMood === "neutral" ? "bg-blue-100" : ""
+              className={`flex flex-col items-center p-2 rounded-full transition-colors ${
+                currentMood === "neutral" ? "bg-blue-100" : "hover:bg-gray-100"
               }`}
             >
               <Meh className="h-8 w-8 text-blue-500" />
@@ -59,8 +59,8 @@ export const MoodSelector = ({
           <TooltipTrigger asChild>
             <button
               onClick={() => setCurrentMood("sad")}
-              className={`flex flex-col items-center p-2 rounded-full ${
-                currentMood === "sad" ? "bg-amber-100" : ""
+              className={`flex flex-col items-center p-2 rounded-full transition-colors ${
+                currentMood === "sad" ? "bg-amber-100" : "hover:bg-gray-100"
               }`}
             >
               <Frown className="h-8 w-8 text-amber-500" />

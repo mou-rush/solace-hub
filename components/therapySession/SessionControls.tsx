@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-
 import {
   PenLine,
   Download,
@@ -25,51 +24,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportSessionAsText } from "@/lib/utils/utils";
-import { useToast } from "@/lib/hooks/useToast";
+import { useSessionStore, useAppStore } from "@/stores";
 
-type SessionControlsProps = {
-  readonly shareSessionLink: () => void;
-  readonly setIsSettingsOpen: (isOpen: boolean) => void;
-  readonly createNewSession: () => void;
-  readonly setShowHistory: (isOpen: boolean) => void;
-  readonly showHistory: boolean;
-  readonly isNotesOpen: boolean;
-  readonly setIsNotesOpen: (isOpen: boolean) => void;
-  readonly sessionGoals: string[];
-  readonly messages: string[];
-  readonly sessionDate: Date;
-  readonly sessionTheme: string;
-  readonly sessionNotes: string;
-  readonly setShowInsightsModal: (show: boolean) => void;
-  readonly showInsightsModal: boolean;
-  readonly setHasNewInsights: (hasNew: boolean) => void;
-  readonly hasNewInsights: boolean;
-  readonly insightsStatus?: {
-    available: boolean;
-    reason?: string;
-  } | null;
-};
+interface SessionControlsProps {
+  shareSessionLink: () => void;
+  createNewSession: () => void;
+  messages: string[];
+  sessionDate: Date;
+}
 
 export function SessionControls({
   shareSessionLink,
-  setIsSettingsOpen,
   createNewSession,
-  setShowHistory,
-  showHistory,
-  isNotesOpen,
-  setIsNotesOpen,
-  sessionGoals,
   messages,
-  sessionTheme,
   sessionDate,
-  sessionNotes,
-  setShowInsightsModal,
-  showInsightsModal,
-  setHasNewInsights,
-  hasNewInsights,
-  insightsStatus = { available: true, reason: "Ready" },
 }: SessionControlsProps) {
-  const { success } = useToast();
+  const { addNotification } = useAppStore();
+  const {
+    showHistory,
+    setShowHistory,
+    isNotesOpen,
+    setIsNotesOpen,
+    setIsSettingsOpen,
+    showInsightsModal,
+    setShowInsightsModal,
+    hasNewInsights,
+    setHasNewInsights,
+    sessionGoals,
+    sessionTheme,
+    sessionNotes,
+  } = useSessionStore();
+
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
   const handleOpenInsights = () => {
@@ -85,15 +70,39 @@ export function SessionControls({
       sessionDate,
       sessionNotes
     );
-    success({
+    addNotification({
       title: "Session Exported",
       description: "Your session has been exported as a text file.",
+      variant: "success",
     });
   };
 
+  const getInsightsStatus = () => {
+    const userMessageCount = messages.filter((msg) => {
+      return (
+        typeof msg === "string" ||
+        (typeof msg === "object" && msg.sender === "user")
+      );
+    }).length;
+
+    if (userMessageCount < 3) {
+      return {
+        available: false,
+        reason: `Need ${3 - userMessageCount} more messages`,
+      };
+    }
+
+    return {
+      available: true,
+      reason: hasNewInsights ? "New insights available!" : "Ready for analysis",
+    };
+  };
+
+  const insightsStatus = getInsightsStatus();
+
   return (
     <div className="flex items-center gap-2 mb-4 flex-wrap">
-      {/* History Button - Enhanced with active state */}
+      {/* History Button */}
       <Button
         variant={showHistory ? "default" : "outline"}
         size="sm"
@@ -112,7 +121,7 @@ export function SessionControls({
         {showHistory ? "Back" : "History"}
       </Button>
 
-      {/* Notes Button - Enhanced with active state and indicator */}
+      {/* Notes Button */}
       <Button
         variant={isNotesOpen ? "default" : "outline"}
         size="sm"
@@ -125,11 +134,9 @@ export function SessionControls({
       >
         <PenLine className="mr-1 h-4 w-4" />
         Notes
-        {/* Active indicator dot */}
         {isNotesOpen && (
           <div className="absolute -top-1 -right-1 w-2 h-2 bg-teal-200 rounded-full animate-pulse" />
         )}
-        {/* Content indicator - shows if there are notes/goals */}
         {!isNotesOpen && (sessionNotes.trim() || sessionGoals.length > 0) && (
           <Badge
             variant="secondary"
@@ -140,7 +147,7 @@ export function SessionControls({
         )}
       </Button>
 
-      {/* Options Dropdown - Enhanced with active state */}
+      {/* Options Dropdown */}
       <DropdownMenu onOpenChange={setIsOptionsOpen}>
         <DropdownMenuTrigger asChild>
           <Button
@@ -154,7 +161,6 @@ export function SessionControls({
           >
             <Menu className="mr-1 h-4 w-4" />
             Options
-            {/* Active indicator dot */}
             {isOptionsOpen && (
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-gray-200 rounded-full animate-pulse" />
             )}
@@ -192,7 +198,9 @@ export function SessionControls({
             <FileText className="mr-2 h-4 w-4 text-purple-600" />
             <span>Share Session (PDF)</span>
           </DropdownMenuItem>
+
           <DropdownMenuSeparator />
+
           <DropdownMenuItem
             onClick={() => setIsSettingsOpen(true)}
             className="cursor-pointer hover:bg-orange-50 focus:bg-orange-50"
@@ -203,7 +211,7 @@ export function SessionControls({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* AI Insights Button - Enhanced styling */}
+      {/* AI Insights Button */}
       <Button
         variant={showInsightsModal || hasNewInsights ? "default" : "outline"}
         size="sm"
@@ -221,11 +229,9 @@ export function SessionControls({
       >
         <Brain className="mr-2 h-4 w-4" />
         AI Insights
-        {/* Active indicator dot */}
         {showInsightsModal && (
           <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-200 rounded-full animate-pulse" />
         )}
-        {/* Status Badge */}
         {insightsStatus?.available && (
           <Badge
             variant={hasNewInsights ? "default" : "secondary"}
@@ -252,7 +258,7 @@ export function SessionControls({
         )}
       </Button>
 
-      {/* Optional: Session Status Indicator */}
+      {/* Session Status Indicator */}
       <div className="hidden md:flex items-center gap-2 ml-auto text-xs text-gray-500">
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />

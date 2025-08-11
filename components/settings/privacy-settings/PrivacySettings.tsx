@@ -12,7 +12,6 @@ import { TabsContent } from "@radix-ui/react-tabs";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/lib/hooks/useToast";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAppStore, useAuthStore } from "@/stores";

@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useRef, useEffect } from "react";
 import {
   doc,
@@ -19,46 +20,50 @@ import { MessageFeedback } from "./MessageFeedback";
 import { AISettings } from "./AISettings";
 import { SessionHistory } from "./SessionHistory";
 import { ChatForm } from "./ChatForm";
-import { InsightsModal } from "@/components/ai-insights/InsightPanel"; // New modal import
+import { InsightsModal } from "@/components/ai-insights/InsightPanel";
 import { useAppStore, useAuthStore, useSessionStore } from "@/stores";
 
 export default function TherapySession() {
   const { addNotification } = useAppStore();
-  const { loading } = useSessionStore();
+  const { user } = useAuthStore();
+  const {
+    sessionId,
+    setSessionId,
+    sessionTheme,
+    setSessionTheme,
+    sessionNotes,
+    setSessionNotes,
+    sessionGoals,
+    setSessionGoals,
+    sessionDate,
+    currentMood,
+    setCurrentMood,
+    loading,
+    showHistory,
+    setShowHistory,
+    isSettingsOpen,
+    setIsSettingsOpen,
+    showInsightsModal,
+    setShowInsightsModal,
+    setHasNewInsights,
+    resetSession,
+  } = useSessionStore();
+
   const [messages, setMessages] = useState<any[]>([]);
-  const [sessionTheme, setSessionTheme] = useState("");
-  const [sessionNotes, setSessionNotes] = useState("");
-  const [sessionDate, setSessionDate] = useState<Date>(new Date());
-  const [currentMood, setCurrentMood] = useState<string | undefined>(undefined);
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [savedSessions, setSavedSessions] = useState<any[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [sessionGoals, setSessionGoals] = useState<string[]>([]);
-  const [newGoal, setNewGoal] = useState("");
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-
-  const [showInsightsModal, setShowInsightsModal] = useState(false);
-  const [hasNewInsights, setHasNewInsights] = useState(false);
-
   const [initializedSessions, setInitializedSessions] = useState<Set<string>>(
     new Set()
   );
-
   const [messagesLoaded, setMessagesLoaded] = useState(false);
-
-  const { user } = useAuthStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  /* Check for new insights when messages change */
   useEffect(() => {
     if (messages.length >= 5 && messages.length % 5 === 0) {
       setHasNewInsights(true);
     }
-  }, [messages.length]);
+  }, [messages.length, setHasNewInsights]);
 
-  /* Load chat history for current session */
   useEffect(() => {
     if (!user || !sessionId) return;
 
@@ -75,34 +80,29 @@ export default function TherapySession() {
     const q = query(chatRef, orderBy("timestamp", "asc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map((doc) => ({
+      const messagesData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setMessages(messages);
+      setMessages(messagesData);
       setMessagesLoaded(true);
     });
 
-    const loadSessionInfo = async () => {
-      const sessionDoc = doc(db, "users", user.uid, "sessions", sessionId);
-      const unsubscribeSession = onSnapshot(sessionDoc, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setSessionTheme(data.theme || "");
-          setSessionNotes(data.notes || "");
-          if (data.date) {
-            setSessionDate(data.date.toDate());
-          }
-          setSessionGoals(data.goals || []);
-        }
-      });
+    const sessionDoc = doc(db, "users", user.uid, "sessions", sessionId);
+    const unsubscribeSession = onSnapshot(sessionDoc, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSessionTheme(data.theme || "");
+        setSessionNotes(data.notes || "");
+        setSessionGoals(data.goals || []);
+      }
+    });
 
-      return () => unsubscribeSession();
+    return () => {
+      unsubscribe();
+      unsubscribeSession();
     };
-
-    loadSessionInfo();
-    return () => unsubscribe();
-  }, [user, sessionId]);
+  }, [user, sessionId, setSessionTheme, setSessionNotes, setSessionGoals]);
 
   useEffect(() => {
     if (!user) return;
@@ -126,16 +126,12 @@ export default function TherapySession() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, sessionId, setSessionId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // NoteToMyself: We are only adding greeting message when:
-  // 1. Messages have been loaded from Firebase
-  // 2. The session has no messages
-  // 3. We haven't already initialized this session
   useEffect(() => {
     if (
       messagesLoaded &&
@@ -178,15 +174,12 @@ export default function TherapySession() {
 
     setSessionId(newSessionRef.id);
     setMessages([]);
-    setSessionTheme("New Therapy Session");
-    setSessionNotes("");
-    setSessionGoals([]);
+    resetSession();
     setMessagesLoaded(false);
 
     addNotification({
       title: "New Session Created",
       description: "You've started a new therapy session.",
-
       variant: "success",
     });
   };
@@ -205,21 +198,8 @@ export default function TherapySession() {
     addNotification({
       title: "Session Updated",
       description: "Your session details have been saved.",
-
       variant: "success",
     });
-  };
-
-  const addSessionGoal = () => {
-    if (!newGoal.trim()) return;
-    setSessionGoals([...sessionGoals, newGoal.trim()]);
-    setNewGoal("");
-  };
-
-  const removeSessionGoal = (index: number) => {
-    const updatedGoals = [...sessionGoals];
-    updatedGoals.splice(index, 1);
-    setSessionGoals(updatedGoals);
   };
 
   const switchToSession = (id: string) => {
@@ -237,43 +217,13 @@ export default function TherapySession() {
     addNotification({
       title: "Session Link Generated",
       description: "The link has been copied to your clipboard. (Demo only)",
-
       variant: "info",
     });
   };
 
-  const getInsightsStatus = () => {
-    const userMessageCount = messages.filter(
-      (msg) => msg.sender === "user"
-    ).length;
-
-    if (userMessageCount < 3) {
-      return {
-        available: false,
-        reason: `Need ${3 - userMessageCount} more messages`,
-        color: "text-gray-400",
-      };
-    }
-
-    if (hasNewInsights) {
-      return {
-        available: true,
-        reason: "New insights available!",
-        color: "text-purple-600",
-      };
-    }
-
-    return {
-      available: true,
-      reason: "Ready for analysis",
-      color: "text-green-600",
-    };
-  };
-
-  const insightsStatus = getInsightsStatus();
-
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden">
+      {/* Header */}
       <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b p-4">
         <h1 className="text-2xl font-bold">AI Therapy Session</h1>
         <p className="text-muted-foreground text-sm">
@@ -281,6 +231,7 @@ export default function TherapySession() {
         </p>
       </div>
 
+      {/* Main Content */}
       {showHistory ? (
         <div className="flex-1 overflow-y-auto p-4">
           <SessionHistory
@@ -292,49 +243,26 @@ export default function TherapySession() {
         </div>
       ) : (
         <>
+          {/* Controls and Notes */}
           <div className="p-4">
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <SessionControls
-                setShowHistory={setShowHistory}
-                showHistory={showHistory}
-                isNotesOpen={isNotesOpen}
-                setIsNotesOpen={setIsNotesOpen}
-                shareSessionLink={shareSessionLink}
-                setIsSettingsOpen={setIsSettingsOpen}
-                createNewSession={createNewSession}
-                sessionGoals={sessionGoals}
-                messages={messages}
-                sessionTheme={sessionTheme}
-                sessionDate={sessionDate}
-                sessionNotes={sessionNotes}
-                setShowInsightsModal={setShowInsightsModal}
-                showInsightsModal={showInsightsModal}
-                setHasNewInsights={setHasNewInsights}
-                hasNewInsights={hasNewInsights}
-                insightsStatus={insightsStatus}
-              />
-            </div>
+            <SessionControls
+              shareSessionLink={shareSessionLink}
+              createNewSession={createNewSession}
+              messages={messages}
+              sessionDate={sessionDate}
+            />
 
             <SessionNotesPanel
-              sessionTheme={sessionTheme}
-              setSessionTheme={setSessionTheme}
-              saveSessionData={saveSessionData}
-              sessionNotes={sessionNotes}
-              setSessionNotes={setSessionNotes}
-              newGoal={newGoal}
-              setNewGoal={setNewGoal}
-              sessionGoals={sessionGoals}
-              addSessionGoal={addSessionGoal}
-              removeSessionGoal={removeSessionGoal}
-              sessionDate={sessionDate}
-              isNotesOpen={isNotesOpen}
               messages={messages}
+              saveSessionData={saveSessionData}
             />
           </div>
 
+          {/* Chat Area */}
           <div className="flex-1 overflow-hidden flex flex-col relative">
             <div className="flex-1 overflow-y-auto p-4">
-              {currentMood === null && messages.length <= 2 && (
+              {/* Mood Selector - only show if mood not set and few messages */}
+              {currentMood === undefined && messages.length <= 2 && (
                 <div className="mb-6">
                   <MoodSelector
                     currentMood={currentMood}
@@ -343,6 +271,7 @@ export default function TherapySession() {
                 </div>
               )}
 
+              {/* Messages */}
               <div className="space-y-4">
                 {messages.map((message) => (
                   <div
@@ -373,6 +302,7 @@ export default function TherapySession() {
                   </div>
                 ))}
 
+                {/* Loading indicator */}
                 {loading && (
                   <div className="flex justify-start">
                     <div className="max-w-[85%] rounded-lg px-4 py-3 bg-secondary">
@@ -388,24 +318,18 @@ export default function TherapySession() {
               </div>
             </div>
 
-            <ChatForm
-              sessionId={sessionId}
-              user={user}
-              messages={messages}
-              currentMood={currentMood}
-              sessionGoals={sessionGoals}
-            />
+            {/* Chat Input */}
+            <ChatForm user={user} messages={messages} />
           </div>
         </>
       )}
 
-      {/* AI Settings Modal */}
+      {/* Modals */}
       <AISettings
         isSettingsOpen={isSettingsOpen}
         setIsSettingsOpen={setIsSettingsOpen}
       />
 
-      {/* AI Insights Full-Screen Modal */}
       <InsightsModal
         userId={user?.uid || ""}
         conversationHistory={messages.map((msg) => ({

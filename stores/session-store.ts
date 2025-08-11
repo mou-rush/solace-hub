@@ -1,159 +1,125 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface Message {
-  id: string;
-  text: string;
-  sender: "user" | "ai";
-  timestamp: Date;
-}
-
-interface SessionGoal {
-  id: string;
-  text: string;
-  completed: boolean;
-}
-
-interface Session {
-  id: string;
-  theme: string;
-  notes: string;
-  goals: SessionGoal[];
-  messages: Message[];
-  date: Date;
-  currentMood?: string;
-}
-
 interface SessionState {
-  currentSession: Session | null;
-  sessions: Session[];
-  loading: boolean;
-  aiResponseStyle: string;
-  showSuggestions: boolean;
-  enhancedMode: boolean;
+  // Current session data //
+  sessionId: string | null;
+  sessionTheme: string;
+  sessionNotes: string;
+  sessionGoals: string[];
+  sessionDate: Date;
+  currentMood?: string;
 
-  // Actions
-  createSession: () => void;
-  switchSession: (sessionId: string) => void;
-  updateSession: (updates: Partial<Session>) => void;
-  addMessage: (message: Omit<Message, "id">) => void;
-  addGoal: (text: string) => void;
-  removeGoal: (goalId: string) => void;
-  toggleGoalCompletion: (goalId: string) => void;
+  // UI state //
+  loading: boolean;
+  isNotesOpen: boolean;
+  showHistory: boolean;
+  isSettingsOpen: boolean;
+  showInsightsModal: boolean;
+  hasNewInsights: boolean;
+  showSuggestions: boolean;
+
+  // AI settings //
+  enhancedMode: boolean;
+  aiResponseStyle: "compassionate" | "balanced" | "direct" | "reflective";
+
+  // Actions //
+  setSessionId: (id: string | null) => void;
+  setSessionTheme: (theme: string) => void;
+  setSessionNotes: (notes: string) => void;
+  setSessionGoals: (goals: string[]) => void;
+  addSessionGoal: (goal: string) => void;
+  removeSessionGoal: (index: number) => void;
+  setCurrentMood: (mood: string | undefined) => void;
+
   setLoading: (loading: boolean) => void;
-  setAiResponseStyle: (style: string) => void;
+  setIsNotesOpen: (isOpen: boolean) => void;
+  setShowHistory: (show: boolean) => void;
+  setIsSettingsOpen: (isOpen: boolean) => void;
+  setShowInsightsModal: (show: boolean) => void;
+  setHasNewInsights: (hasNew: boolean) => void;
   setShowSuggestions: (show: boolean) => void;
+
   setEnhancedMode: (enhanced: boolean) => void;
+  setAiResponseStyle: (
+    style: "compassionate" | "balanced" | "direct" | "reflective"
+  ) => void;
+
+  resetSession: () => void;
 }
 
 export const useSessionStore = create<SessionState>()(
   persist(
     (set, get) => ({
-      currentSession: null,
-      sessions: [],
+      // Initial state //
+      sessionId: null,
+      sessionTheme: "",
+      sessionNotes: "",
+      sessionGoals: [],
+      sessionDate: new Date(),
+      currentMood: undefined,
+
       loading: false,
-      aiResponseStyle: "balanced",
+      isNotesOpen: false,
+      showHistory: false,
+      isSettingsOpen: false,
+      showInsightsModal: false,
+      hasNewInsights: false,
       showSuggestions: true,
-      enhancedMode: true,
 
-      createSession: () => {
-        const newSession: Session = {
-          id: `session-${Date.now()}`,
-          theme: "New Therapy Session",
-          notes: "",
-          goals: [],
-          messages: [],
-          date: new Date(),
-        };
+      enhancedMode: false,
+      aiResponseStyle: "compassionate",
 
+      // Actions //
+      setSessionId: (id) => set({ sessionId: id }),
+      setSessionTheme: (theme) => set({ sessionTheme: theme }),
+      setSessionNotes: (notes) => set({ sessionNotes: notes }),
+      setSessionGoals: (goals) => set({ sessionGoals: goals }),
+
+      addSessionGoal: (goal) => {
+        const trimmed = goal.trim();
+        if (!trimmed) return;
         set((state) => ({
-          currentSession: newSession,
-          sessions: [newSession, ...state.sessions],
+          sessionGoals: [...state.sessionGoals, trimmed],
         }));
       },
 
-      switchSession: (sessionId) => {
-        const session = get().sessions.find((s) => s.id === sessionId);
-        if (session) {
-          set({ currentSession: session });
-        }
-      },
-
-      updateSession: (updates) => {
-        const { currentSession } = get();
-        if (!currentSession) return;
-
-        const updatedSession = { ...currentSession, ...updates };
-
+      removeSessionGoal: (index) => {
         set((state) => ({
-          currentSession: updatedSession,
-          sessions: state.sessions.map((s) =>
-            s.id === currentSession.id ? updatedSession : s
-          ),
+          sessionGoals: state.sessionGoals.filter((_, i) => i !== index),
         }));
       },
 
-      addMessage: (messageData) => {
-        const message: Message = {
-          ...messageData,
-          id: `msg-${Date.now()}`,
-        };
-
-        const { currentSession } = get();
-        if (!currentSession) return;
-
-        get().updateSession({
-          messages: [...currentSession.messages, message],
-        });
-      },
-
-      addGoal: (text) => {
-        const goal: SessionGoal = {
-          id: `goal-${Date.now()}`,
-          text,
-          completed: false,
-        };
-
-        const { currentSession } = get();
-        if (!currentSession) return;
-
-        get().updateSession({
-          goals: [...currentSession.goals, goal],
-        });
-      },
-
-      removeGoal: (goalId) => {
-        const { currentSession } = get();
-        if (!currentSession) return;
-
-        get().updateSession({
-          goals: currentSession.goals.filter((g) => g.id !== goalId),
-        });
-      },
-
-      toggleGoalCompletion: (goalId) => {
-        const { currentSession } = get();
-        if (!currentSession) return;
-
-        get().updateSession({
-          goals: currentSession.goals.map((g) =>
-            g.id === goalId ? { ...g, completed: !g.completed } : g
-          ),
-        });
-      },
+      setCurrentMood: (mood) => set({ currentMood: mood }),
 
       setLoading: (loading) => set({ loading }),
-      setAiResponseStyle: (aiResponseStyle) => set({ aiResponseStyle }),
-      setShowSuggestions: (showSuggestions) => set({ showSuggestions }),
-      setEnhancedMode: (enhancedMode) => set({ enhancedMode }),
+      setIsNotesOpen: (isOpen) => set({ isNotesOpen: isOpen }),
+      setShowHistory: (show) => set({ showHistory: show }),
+      setIsSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen }),
+      setShowInsightsModal: (show) => set({ showInsightsModal: show }),
+      setHasNewInsights: (hasNew) => set({ hasNewInsights: hasNew }),
+      setShowSuggestions: (show) => set({ showSuggestions: show }),
+
+      setEnhancedMode: (enhanced) => set({ enhancedMode: enhanced }),
+      setAiResponseStyle: (style) => set({ aiResponseStyle: style }),
+
+      resetSession: () =>
+        set({
+          sessionTheme: "",
+          sessionNotes: "",
+          sessionGoals: [],
+          sessionDate: new Date(),
+          currentMood: undefined,
+          isNotesOpen: false,
+          hasNewInsights: false,
+        }),
     }),
     {
       name: "session-storage",
       partialize: (state) => ({
-        sessions: state.sessions,
+        enhancedMode: state.enhancedMode,
         aiResponseStyle: state.aiResponseStyle,
         showSuggestions: state.showSuggestions,
-        enhancedMode: state.enhancedMode,
       }),
     }
   )

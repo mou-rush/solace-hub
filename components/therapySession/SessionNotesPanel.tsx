@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,43 +17,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { exportSessionAsPDF, exportSessionAsText } from "@/lib/utils/utils";
-import { useState } from "react";
-import { useAppStore } from "@/stores";
+import { useAppStore, useSessionStore } from "@/stores";
 
 interface SessionNotesPanelProps {
-  isNotesOpen: boolean;
-  sessionTheme: string;
-  setSessionTheme: (value: string) => void;
   messages: any[];
-  sessionNotes: string;
   saveSessionData: () => void;
-  setSessionNotes: (value: string) => void;
-  setNewGoal: (value: string) => void;
-  newGoal: string;
-  addSessionGoal: () => void;
-  sessionGoals: string[];
-  removeSessionGoal: (index: number) => void;
-  sessionDate: Date;
 }
 
 export const SessionNotesPanel = ({
-  isNotesOpen,
-  setSessionTheme,
-  saveSessionData,
-  setSessionNotes,
-  setNewGoal,
-  newGoal,
-  addSessionGoal,
-  removeSessionGoal,
-
-  sessionGoals,
   messages,
-  sessionTheme,
-  sessionDate,
-  sessionNotes,
+  saveSessionData,
 }: SessionNotesPanelProps) => {
   const { addNotification } = useAppStore();
+  const {
+    isNotesOpen,
+    sessionTheme,
+    setSessionTheme,
+    sessionNotes,
+    setSessionNotes,
+    sessionGoals,
+    addSessionGoal,
+    removeSessionGoal,
+    sessionDate,
+  } = useSessionStore();
+
+  const [newGoal, setNewGoal] = useState("");
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handleAddGoal = () => {
+    if (!newGoal.trim()) return;
+    addSessionGoal(newGoal);
+    setNewGoal("");
+  };
 
   const handleExportSessionAsText = () => {
     try {
@@ -106,12 +102,10 @@ export const SessionNotesPanel = ({
     }
   };
 
+  if (!isNotesOpen) return null;
+
   return (
-    <Card
-      className={`transition-all duration-300 overflow-hidden ${
-        isNotesOpen ? "max-h-[600px]" : "max-h-0"
-      }`}
-    >
+    <Card className="transition-all duration-300 overflow-hidden max-h-[600px]">
       <CardContent className="p-4">
         <Tabs defaultValue="notes">
           <TabsList className="mb-4">
@@ -170,11 +164,11 @@ export const SessionNotesPanel = ({
                     className="flex-1"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        addSessionGoal();
+                        handleAddGoal();
                       }
                     }}
                   />
-                  <Button onClick={addSessionGoal} disabled={!newGoal.trim()}>
+                  <Button onClick={handleAddGoal} disabled={!newGoal.trim()}>
                     Add
                   </Button>
                 </div>
