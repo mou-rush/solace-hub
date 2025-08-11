@@ -11,12 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-interface ActionCardProps {
-  readonly title: string;
-  readonly description?: string;
-  readonly children?: React.ReactNode;
-  readonly className?: string;
-}
+
 export function ActionCard() {
   const priorityActions = [
     {

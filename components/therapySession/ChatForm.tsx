@@ -22,23 +22,21 @@ import {
   TrendingUp,
   Sparkles,
 } from "lucide-react";
-import { useToast } from "@/lib/hooks/useToast";
+
 import {
   getEnhancedTherapyResponse,
   analyzeSentiment,
 } from "@/lib/ai/ai-service";
 import { ConversationContext } from "@/lib/ai/enhanced-ai-service";
 import { User } from "firebase/auth";
+import { useAppStore, useSessionStore } from "@/stores";
 
 interface EnhancedChatFormProps {
   sessionId: string | null;
   user: User | null;
-  setShowSuggestions: (value: boolean) => void;
-  aiResponseStyle: string;
-  showSuggestions: boolean;
+
   messages: Array<{ text: string; sender: string; timestamp: Timestamp }>;
-  loading: boolean;
-  setLoading: (value: boolean) => void;
+
   currentMood?: string;
   sessionGoals?: string[];
 }
@@ -52,16 +50,22 @@ interface SmartSuggestion {
 export const ChatForm = ({
   sessionId,
   user,
-  setShowSuggestions,
-  aiResponseStyle,
-  showSuggestions,
+
   messages,
-  loading,
-  setLoading,
+
   currentMood,
   sessionGoals = [],
 }: EnhancedChatFormProps) => {
-  const { error, success } = useToast();
+  const { addNotification } = useAppStore();
+  const {
+    loading,
+    aiResponseStyle,
+    showSuggestions,
+    setShowSuggestions,
+    setLoading,
+    enhancedMode,
+    setEnhancedMode,
+  } = useSessionStore();
   const [input, setInput] = useState("");
   const [speechRecognition, setSpeechRecognition] = useState<any>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -69,7 +73,7 @@ export const ChatForm = ({
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>(
     []
   );
-  const [enhancedMode, setEnhancedMode] = useState(true);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +107,8 @@ export const ChatForm = ({
       recognition.onerror = (event) => {
         console.error("Speech recognition error", event.error);
         setIsRecording(false);
-        error({
+        addNotification({
+          variant: "error",
           title: "Voice Recording Error",
           description: `Error: ${event.error}. Please try again.`,
         });
@@ -287,9 +292,10 @@ export const ChatForm = ({
 
         /* Show additional insights if available */
         if (enhancedResponse.sources && enhancedResponse.sources.length > 0) {
-          success({
+          addNotification({
             title: "Enhanced Response",
             description: `Response enhanced with ${enhancedResponse.sources.length} knowledge sources`,
+            variant: "success",
           });
         }
       } else {
@@ -309,9 +315,10 @@ export const ChatForm = ({
       });
     } catch (errorMessage) {
       console.error("Error getting AI response:", errorMessage);
-      error({
-        title: "Error",
+      addNotification({
+        title: "AI Response Error",
         description: "Failed to get AI response. Please try again.",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -323,7 +330,8 @@ export const ChatForm = ({
 
   const toggleRecording = () => {
     if (!speechRecognition) {
-      error({
+      addNotification({
+        variant: "error",
         title: "Speech Recognition Not Available",
         description: "Your browser does not support speech recognition.",
       });
@@ -333,14 +341,16 @@ export const ChatForm = ({
     if (isRecording) {
       speechRecognition.stop();
       setIsRecording(false);
-      success({
+      addNotification({
+        variant: "success",
         title: "Voice recording stopped",
         description: "Your voice input has been captured.",
       });
     } else {
       speechRecognition.start();
       setIsRecording(true);
-      success({
+      addNotification({
+        variant: "info",
         title: "Voice recording started",
         description: "Speak clearly into your microphone.",
       });

@@ -11,7 +11,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useToast } from "@/lib/hooks/useToast";
 import { format } from "date-fns";
 import { MoodSelector } from "./MoodSelector";
 import { SessionControls } from "./SessionControls";
@@ -21,13 +20,12 @@ import { AISettings } from "./AISettings";
 import { SessionHistory } from "./SessionHistory";
 import { ChatForm } from "./ChatForm";
 import { InsightsModal } from "@/components/ai-insights/InsightPanel"; // New modal import
-import { useAppStore, useAuthStore } from "@/stores";
+import { useAppStore, useAuthStore, useSessionStore } from "@/stores";
 
 export default function TherapySession() {
   const { addNotification } = useAppStore();
-
+  const { loading } = useSessionStore();
   const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [sessionTheme, setSessionTheme] = useState("");
   const [sessionNotes, setSessionNotes] = useState("");
   const [sessionDate, setSessionDate] = useState<Date>(new Date());
@@ -35,11 +33,9 @@ export default function TherapySession() {
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [savedSessions, setSavedSessions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const [sessionGoals, setSessionGoals] = useState<string[]>([]);
   const [newGoal, setNewGoal] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [aiResponseStyle, setAiResponseStyle] = useState("balanced");
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const [showInsightsModal, setShowInsightsModal] = useState(false);
@@ -395,12 +391,7 @@ export default function TherapySession() {
             <ChatForm
               sessionId={sessionId}
               user={user}
-              setShowSuggestions={setShowSuggestions}
-              aiResponseStyle={aiResponseStyle}
-              showSuggestions={showSuggestions}
               messages={messages}
-              setLoading={setLoading}
-              loading={loading}
               currentMood={currentMood}
               sessionGoals={sessionGoals}
             />
@@ -410,12 +401,8 @@ export default function TherapySession() {
 
       {/* AI Settings Modal */}
       <AISettings
-        setAiResponseStyle={setAiResponseStyle}
         isSettingsOpen={isSettingsOpen}
         setIsSettingsOpen={setIsSettingsOpen}
-        aiResponseStyle={aiResponseStyle}
-        setShowSuggestions={setShowSuggestions}
-        showSuggestions={showSuggestions}
       />
 
       {/* AI Insights Full-Screen Modal */}

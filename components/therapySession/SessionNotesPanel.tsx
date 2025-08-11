@@ -12,12 +12,12 @@ import {
   FileText,
   Loader2,
 } from "lucide-react";
-import { useToast } from "@/lib/hooks/useToast";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { exportSessionAsPDF, exportSessionAsText } from "@/lib/utils/utils";
 import { useState } from "react";
+import { useAppStore } from "@/stores";
 
 interface SessionNotesPanelProps {
   isNotesOpen: boolean;
@@ -51,7 +51,7 @@ export const SessionNotesPanel = ({
   sessionDate,
   sessionNotes,
 }: SessionNotesPanelProps) => {
-  const { success, error } = useToast();
+  const { addNotification } = useAppStore();
   const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const handleExportSessionAsText = () => {
@@ -63,14 +63,16 @@ export const SessionNotesPanel = ({
         sessionDate,
         sessionNotes
       );
-      success({
+      addNotification({
         title: "Session Exported",
         description: "Your session has been exported as a text file.",
+        variant: "success",
       });
     } catch (err) {
-      error({
+      addNotification({
         title: "Export Failed",
         description: "Failed to export session as text file.",
+        variant: "error",
       });
     }
   };
@@ -87,15 +89,17 @@ export const SessionNotesPanel = ({
         sessionNotes,
         messages
       );
-      success({
+      addNotification({
         title: "PDF Generated",
         description: "Your session has been exported as a PDF file.",
+        variant: "success",
       });
     } catch (err) {
       console.error("PDF Export Error:", err);
-      error({
+      addNotification({
         title: "PDF Export Failed",
         description: "Failed to generate PDF. Please try again.",
+        variant: "error",
       });
     } finally {
       setIsExportingPDF(false);
