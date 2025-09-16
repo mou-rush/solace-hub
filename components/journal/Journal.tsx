@@ -11,8 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/lib/hooks/useToast";
-
 import {
   analyzeJournalEntry,
   getAdvancedJournalAnalysis,
@@ -33,11 +31,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuthStore } from "@/stores";
+import { useAppStore, useAuthStore } from "@/stores";
 
 export default function JournalPage() {
   const { user } = useAuthStore();
-  const { toast } = useToast();
+  const { addNotification } = useAppStore();
 
   const [entries, setEntries] = useState<any[]>([]);
   const [title, setTitle] = useState("");
@@ -128,7 +126,11 @@ export default function JournalPage() {
         console.log("Sentiment analysis:", analysis.sentiment);
       }
     } catch (err) {
-      error({ title: "Advanced analysis failed, using basic:" });
+      addNotification({
+        title: "Advanced analysis failed, using basic:",
+        variant: "warning",
+        description: "Falling back to basic analysis.",
+      });
       console.error(err);
       /* Fallback to basic analysis */
       const response = await analyzeJournalEntry(content);
@@ -147,9 +149,17 @@ export default function JournalPage() {
         entries: arrayRemove(entryToDelete),
       });
       setEntries((prev) => prev.filter((e) => e !== entryToDelete));
-      success({ title: "Entry deleted" });
+      addNotification({
+        title: "Entry deleted",
+        variant: "success",
+        description: "The journal entry has been removed.",
+      });
     } catch {
-      error({ title: "Failed to delete entry" });
+      addNotification({
+        title: "Failed to delete entry",
+        variant: "error",
+        description: "Please try again.",
+      });
     }
   };
 

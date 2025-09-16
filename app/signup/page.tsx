@@ -20,11 +20,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Heart } from "lucide-react";
-import { useToast } from "@/lib/hooks/useToast";
+import { useAppStore } from "@/stores";
 
 export default function SignUp() {
-  const { success, error } = useToast();
-
+  const { addNotification } = useAppStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,9 +57,10 @@ export default function SignUp() {
         entries: [],
       });
 
-      success({
+      addNotification({
         title: "Account created!",
         description: "Welcome to SolaceHub. You're now signed in.",
+        variant: "success",
       });
 
       router.push("/dashboard");
@@ -76,9 +76,10 @@ export default function SignUp() {
         errorMessage.message = "Password should be at least 6 characters.";
       }
 
-      error({
+      addNotification({
         title: "Error creating account",
         description: errorMessage.message,
+        variant: "error",
       });
     } finally {
       setLoading(false);

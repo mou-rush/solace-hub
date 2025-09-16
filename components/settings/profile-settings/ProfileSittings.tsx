@@ -16,9 +16,9 @@ import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/lib/hooks/useToast";
 
 import { Camera, UserCircle } from "lucide-react";
+import { useAppStore } from "@/stores";
 
 interface ProfileSettingsProps {
   setEmail: (email: string) => void;
@@ -34,7 +34,8 @@ export const ProfileSittings = ({
   userName,
   setUserName,
 }: ProfileSettingsProps) => {
-  const { error, success } = useToast();
+  const { addNotification } = useAppStore();
+
   const [profileLoading, setProfileLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -57,7 +58,8 @@ export const ProfileSittings = ({
     if (!file) return;
 
     if (!file.type.match("image.*")) {
-      error({
+      addNotification({
+        variant: "error",
         title: "Invalid file type",
         description: "Please select an image file (JPEG, PNG, etc.)",
       });
@@ -65,7 +67,8 @@ export const ProfileSittings = ({
     }
 
     if (file.size > 1 * 1024 * 1024) {
-      error({
+      addNotification({
+        variant: "error",
         title: "File too large",
         description: "Image should be less than 1MB when using local storage",
       });
