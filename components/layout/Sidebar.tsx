@@ -6,7 +6,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
-import { cn } from "@/lib/utils/utils";
+import { cn, playSuccessSound } from "@/lib/utils/utils";
 import { UserProfile } from "@/components/sidebar/userProfile/UserProfile";
 import { MobileSidebar } from "@/components/sidebar/mobileSidebar/MobileSidebar";
 import { HelpDialog } from "@/components/sidebar/helpDialog/HelpDialog";
@@ -47,6 +47,7 @@ export function Sidebar() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      playSuccessSound();
       addNotification({
         title: "Signed out successfully",
         description: "You have been logged out of your account.",

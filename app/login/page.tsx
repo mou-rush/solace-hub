@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { playSuccessSound } from "@/lib/utils/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,6 +30,9 @@ export default function LoginPage() {
         password
       );
       setUser(userCredential.user);
+
+      playSuccessSound();
+
       addNotification({
         title: "Welcome back!",
         description: "You've successfully logged in.",
