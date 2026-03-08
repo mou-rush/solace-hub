@@ -232,8 +232,8 @@ Contributions are welcome! Please open an issue first to discuss what you would 
 
 ---
 
-
+```
 <div align="center">
   Made with ❤️ to make mental health support more accessible.
 </div>
-```
+
