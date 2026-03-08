@@ -64,7 +64,7 @@ export class EnhancedAIService {
 
   async generateTherapyResponse(
     prompt: string,
-    context: ConversationContext
+    context: ConversationContext,
   ): Promise<EnhancedAIResponse> {
     try {
       if (!this.initialized) {
@@ -80,7 +80,7 @@ export class EnhancedAIService {
       const ragResponse = await this.ragService.query(
         prompt,
         context.userId,
-        context.conversationHistory
+        context.conversationHistory,
       );
 
       /* Generate contextual recommendations */
@@ -88,7 +88,7 @@ export class EnhancedAIService {
       const recommendations = await this.generateRecommendations(
         prompt,
         context,
-        ragResponse.sources
+        ragResponse.sources,
       );
 
       {
@@ -96,7 +96,7 @@ export class EnhancedAIService {
       }
       const conversationContext = this.analyzeConversationContext(
         context.conversationHistory,
-        sentiment
+        sentiment,
       );
 
       return {
@@ -121,7 +121,7 @@ export class EnhancedAIService {
   async analyzeJournalEntry(
     entry: string,
     userId: string,
-    previousEntries: string[] = []
+    previousEntries: string[] = [],
   ): Promise<{
     insight: string;
     sentiment: any;
@@ -146,14 +146,14 @@ export class EnhancedAIService {
       const ragResponse = await this.ragService.query(
         `Analyze this journal entry for therapeutic insights: ${entry}`,
         userId,
-        []
+        [],
       );
 
       /* Generate personalized recommendations */
       const recommendations = await this.generateJournalRecommendations(
         entry,
         themes,
-        sentiment
+        sentiment,
       );
 
       return {
@@ -172,7 +172,7 @@ export class EnhancedAIService {
   async getMoodBasedRecommendations(
     mood: string,
     userId: string,
-    conversationHistory: Array<{ text: string; sender: string }>
+    conversationHistory: Array<{ text: string; sender: string }>,
   ): Promise<string[]> {
     try {
       const moodQueries = {
@@ -193,8 +193,8 @@ export class EnhancedAIService {
           (resource) =>
             `${resource.metadata.title}: ${resource.content.substring(
               0,
-              150
-            )}...`
+              150,
+            )}...`,
         );
     } catch (error) {
       console.error("Mood-based recommendations failed:", error);
@@ -205,7 +205,7 @@ export class EnhancedAIService {
   async getProgressInsights(
     userId: string,
     moodHistory: Array<{ mood: string; timestamp: Date }>,
-    conversationHistory: Array<{ text: string; sender: string }>
+    conversationHistory: Array<{ text: string; sender: string }>,
   ): Promise<{
     overall_trend: string;
     key_insights: string[];
@@ -222,12 +222,12 @@ export class EnhancedAIService {
 
       /* Generate AI-powered insights */
       const insightsQuery = `Analyze mental health progress based on mood trend: ${moodTrend} and conversation themes: ${conversationInsights.join(
-        ", "
+        ", ",
       )}`;
       const ragResponse = await this.ragService.query(
         insightsQuery,
         userId,
-        []
+        [],
       );
 
       return {
@@ -235,7 +235,7 @@ export class EnhancedAIService {
         key_insights: [ragResponse.answer, ...conversationInsights],
         recommendations: await this.generateProgressRecommendations(
           moodTrend,
-          patterns
+          patterns,
         ),
         mood_patterns: patterns,
       };
@@ -248,19 +248,19 @@ export class EnhancedAIService {
   private async generateRecommendations(
     prompt: string,
     context: ConversationContext,
-    sources: any[]
+    sources: any[],
   ): Promise<string[]> {
     const recommendations = [];
 
     /* Based on conversation themes */
     const themes = this.extractThemes(
-      context.conversationHistory.map((msg) => msg.text)
+      context.conversationHistory.map((msg) => msg.text),
     );
 
     for (const theme of themes.slice(0, 2)) {
       const resources = await this.ragService.searchResources(
         theme,
-        "Coping Strategies"
+        "Coping Strategies",
       );
       if (resources.length > 0) {
         recommendations.push(resources[0].metadata.title);
@@ -272,7 +272,7 @@ export class EnhancedAIService {
       const moodRecs = await this.getMoodBasedRecommendations(
         context.currentMood,
         context.userId,
-        context.conversationHistory
+        context.conversationHistory,
       );
       recommendations.push(...moodRecs.slice(0, 1));
     }
@@ -282,7 +282,7 @@ export class EnhancedAIService {
 
   private analyzeConversationContext(
     history: Array<{ text: string; sender: string }>,
-    currentSentiment: any
+    currentSentiment: { score: number },
   ): any {
     const userMessages = history
       .filter((msg) => msg.sender === "user")
@@ -319,7 +319,7 @@ export class EnhancedAIService {
 
   private determineMoodTrend(
     messages: string[],
-    currentSentiment: any
+    currentSentiment: { score: number },
   ): string {
     const positiveWords = ["better", "good", "improving", "positive", "happy"];
     const negativeWords = [
@@ -333,10 +333,10 @@ export class EnhancedAIService {
     const recentText = messages.slice(-3).join(" ").toLowerCase();
 
     const positiveCount = positiveWords.filter((word) =>
-      recentText.includes(word)
+      recentText.includes(word),
     ).length;
     const negativeCount = negativeWords.filter((word) =>
-      recentText.includes(word)
+      recentText.includes(word),
     ).length;
 
     if (currentSentiment.score > 0.3) return "improving";
@@ -347,7 +347,7 @@ export class EnhancedAIService {
   }
 
   private assessSessionProgress(
-    history: Array<{ text: string; sender: string }>
+    history: Array<{ text: string; sender: string }>,
   ): string {
     const messageCount = history.length;
 
@@ -383,7 +383,7 @@ export class EnhancedAIService {
   }
 
   private analyzeMoodTrend(
-    moodHistory: Array<{ mood: string; timestamp: Date }>
+    moodHistory: Array<{ mood: string; timestamp: Date }>,
   ): string {
     if (moodHistory.length < 3) return "insufficient_data";
 
@@ -417,7 +417,7 @@ export class EnhancedAIService {
   }
 
   private extractConversationInsights(
-    history: Array<{ text: string; sender: string }>
+    history: Array<{ text: string; sender: string }>,
   ): string[] {
     const insights = [];
     const userMessages = history
@@ -447,7 +447,7 @@ export class EnhancedAIService {
   }
 
   private detectMoodPatterns(
-    moodHistory: Array<{ mood: string; timestamp: Date }>
+    moodHistory: Array<{ mood: string; timestamp: Date }>,
   ): string[] {
     const patterns = [];
 
@@ -469,7 +469,7 @@ export class EnhancedAIService {
 
   private async generateProgressRecommendations(
     trend: string,
-    patterns: string[]
+    patterns: string[],
   ): Promise<string[]> {
     const recommendations = [];
 
@@ -494,7 +494,7 @@ export class EnhancedAIService {
   private async generateJournalRecommendations(
     entry: string,
     themes: string[],
-    sentiment: any
+    sentiment: any,
   ): Promise<string[]> {
     const recommendations = [];
 
@@ -516,11 +516,11 @@ export class EnhancedAIService {
 
   private async fallbackResponse(
     prompt: string,
-    context: ConversationContext
+    context: ConversationContext,
   ): Promise<EnhancedAIResponse> {
     /* Fallback to basic Gemini response */
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-001",
+      model: "gemini-2.5-flash",
     });
 
     const therapyPrompt = `As an AI therapist, respond empathetically to: "${prompt}"`;

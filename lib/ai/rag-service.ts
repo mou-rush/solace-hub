@@ -169,7 +169,7 @@ export class RAGService {
   async query(
     userQuestion: string,
     userId: string,
-    conversationHistory: Array<{ text: string; sender: string }> = []
+    conversationHistory: Array<{ text: string; sender: string }> = [],
   ): Promise<RAGResponse> {
     try {
       /* Store conversation context */
@@ -178,7 +178,7 @@ export class RAGService {
       // Get relevant documents from vector store
       const relevantDocs = await this.vectorStore.similaritySearch(
         userQuestion,
-        3
+        3,
       );
 
       /* Get conversation context */
@@ -198,12 +198,12 @@ export class RAGService {
         userQuestion,
         contextText,
         conversationContext,
-        context
+        context,
       );
 
       /* Generate response using Gemini */
       const model = this.genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-001",
+        model: "gemini-2.5-flash",
       });
 
       const result = await model.generateContent({
@@ -254,7 +254,11 @@ export class RAGService {
     question: string,
     context: string,
     conversationHistory: string,
-    userContext: any
+    userContext: {
+      moodPatterns?: string[];
+      themes?: string[];
+      sessionCount?: number;
+    },
   ): string {
     return `You are an AI mental health therapy assistant with access to professional knowledge resources. Use the provided context to give accurate, empathetic, and evidence-based responses.
 
@@ -299,7 +303,7 @@ RESPONSE:`;
           ? 0.4
           : 0;
         const tagMatch = doc.metadata.tags.some((tag) =>
-          query.toLowerCase().includes(tag.toLowerCase())
+          query.toLowerCase().includes(tag.toLowerCase()),
         )
           ? 0.3
           : 0;
@@ -316,7 +320,7 @@ RESPONSE:`;
 
   async searchResources(
     query: string,
-    category?: string
+    category?: string,
   ): Promise<RAGDocument[]> {
     const results = await this.vectorStore.similaritySearch(query, 5);
 
@@ -329,7 +333,7 @@ RESPONSE:`;
 
   async getRecommendations(
     userId: string,
-    conversationHistory: Array<{ text: string; sender: string }>
+    conversationHistory: Array<{ text: string; sender: string }>,
   ): Promise<RAGDocument[]> {
     /* Analyze conversation to extract key themes */
     const recentMessages = conversationHistory

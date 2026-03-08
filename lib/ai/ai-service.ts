@@ -35,7 +35,7 @@ export async function generateTherapyResponse(
     timestamp?: Date;
   }>,
   currentMood?: string,
-  sessionGoals?: string[]
+  sessionGoals?: string[],
 ) {
   try {
     /* If enhanced context is available, use RAG system */
@@ -65,7 +65,7 @@ export async function generateTherapyResponse(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const therapyPrompt = `As an AI therapist, respond to the following message with empathy, 
     insight, and therapeutic techniques. Maintain a supportive tone and offer thoughtful 
@@ -118,7 +118,7 @@ export async function generateTherapyResponse(
 export async function analyzeJournalEntry(
   entry: string,
   userId?: string,
-  previousEntries?: string[]
+  previousEntries?: string[],
 ) {
   try {
     /*  If enhanced context is available, use advanced analysis */
@@ -127,7 +127,7 @@ export async function analyzeJournalEntry(
       const result = await enhancedAI.analyzeJournalEntry(
         entry,
         userId,
-        previousEntries
+        previousEntries,
       );
       return result.insight;
     }
@@ -140,7 +140,7 @@ export async function analyzeJournalEntry(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const analysisPrompt = `As a therapeutic AI assistant, please analyze the following journal entry 
     and provide thoughtful, empathetic insights. Focus on emotional patterns, potential areas for 
@@ -189,7 +189,7 @@ export async function analyzeJournalEntry(
 /* Enhanced/advanced functions */
 export async function getEnhancedTherapyResponse(
   prompt: string,
-  context: ConversationContext
+  context: ConversationContext,
 ) {
   try {
     const enhancedAI = await getEnhancedAI();
@@ -203,7 +203,7 @@ export async function getEnhancedTherapyResponse(
 export async function getAdvancedJournalAnalysis(
   entry: string,
   userId: string,
-  previousEntries: string[] = []
+  previousEntries: string[] = [],
 ) {
   try {
     const enhancedAI = await getEnhancedAI();
@@ -227,14 +227,14 @@ export async function analyzeSentiment(text: string) {
 export async function getMoodBasedRecommendations(
   mood: string,
   userId: string,
-  conversationHistory: Array<{ text: string; sender: string }>
+  conversationHistory: Array<{ text: string; sender: string }>,
 ) {
   try {
     const enhancedAI = await getEnhancedAI();
     return await enhancedAI.getMoodBasedRecommendations(
       mood,
       userId,
-      conversationHistory
+      conversationHistory,
     );
   } catch (error) {
     console.error("Mood-based recommendations failed:", error);
@@ -245,14 +245,14 @@ export async function getMoodBasedRecommendations(
 export async function getProgressInsights(
   userId: string,
   moodHistory: Array<{ mood: string; timestamp: Date }>,
-  conversationHistory: Array<{ text: string; sender: string }>
+  conversationHistory: Array<{ text: string; sender: string }>,
 ) {
   try {
     const enhancedAI = await getEnhancedAI();
     return await enhancedAI.getProgressInsights(
       userId,
       moodHistory,
-      conversationHistory
+      conversationHistory,
     );
   } catch (error) {
     console.error("Progress insights failed:", error);
@@ -262,7 +262,7 @@ export async function getProgressInsights(
 
 export async function searchMentalHealthResources(
   query: string,
-  category?: string
+  category?: string,
 ) {
   try {
     const enhancedAI = await getEnhancedAI();
@@ -277,7 +277,7 @@ export async function searchMentalHealthResources(
 
 export async function getConversationInsights(
   userId: string,
-  conversationHistory: Array<{ text: string; sender: string; timestamp: Date }>
+  conversationHistory: Array<{ text: string; sender: string; timestamp: Date }>,
 ) {
   try {
     const analyzer = await getSentimentAnalyzer();
@@ -292,7 +292,7 @@ export async function getConversationInsights(
       userMessages.map(async (msg) => ({
         sentiment: await msg.sentiment,
         timestamp: msg.timestamp,
-      }))
+      })),
     );
 
     const trendAnalysis = await analyzer.analyzeMoodTrend(sentimentResults);
@@ -302,7 +302,7 @@ export async function getConversationInsights(
       moodTrend: trendAnalysis,
       totalMessages: conversationHistory.length,
       userMessageCount: conversationHistory.filter(
-        (msg) => msg.sender === "user"
+        (msg) => msg.sender === "user",
       ).length,
     };
   } catch (error) {
