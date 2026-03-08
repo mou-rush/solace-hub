@@ -205,7 +205,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
 
 # Google Gemini AI
-GEMINI_API_KEY=
+NEXT_PUBLIC_GOOGLE_AI_API_KEY=
 
 
 ## Usage
@@ -232,8 +232,8 @@ Contributions are welcome! Please open an issue first to discuss what you would 
 
 ---
 
+```
 
 <div align="center">
   Made with ❤️ to make mental health support more accessible.
 </div>
-```
