@@ -97,9 +97,17 @@ export default function JournalPage() {
       setTag("");
       setInsight("");
 
-      toast.success("Entry saved!");
+      addNotification({
+        title: "Entry saved!",
+        variant: "success",
+        description: "Your journal entry has been saved.",
+      });
     } catch (err) {
-      toast.error("Failed to save entry");
+      addNotification({
+        title: "Failed to save entry",
+        variant: "error",
+        description: "Please try again.",
+      });
     } finally {
       setLoading(false);
     }
