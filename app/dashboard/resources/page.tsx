@@ -1,12 +1,11 @@
 "use client";
 
-import Resources from "@/components/resources/Resources";
-import React from "react";
+import { LazyResources } from "@/lib/lazy-components";
 
-export default function ChatPage() {
+export default function ResourcesPage() {
   return (
     <div>
-      <Resources />
+      <LazyResources />
     </div>
   );
 }

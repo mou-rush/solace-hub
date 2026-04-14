@@ -1,12 +1,11 @@
 "use client";
 
-import TherapySession from "@/components/therapySession/TherapySession";
-import React from "react";
+import { LazyTherapySession } from "@/lib/lazy-components";
 
 export default function ChatPage() {
   return (
     <div>
-      <TherapySession />
+      <LazyTherapySession />
     </div>
   );
 }

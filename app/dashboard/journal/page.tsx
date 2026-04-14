@@ -1,11 +1,11 @@
 "use client";
-import Journal from "@/components/journal/Journal";
-import React from "react";
+
+import { LazyJournal } from "@/lib/lazy-components";
 
 export default function JournalPage() {
   return (
     <div>
-      <Journal />
+      <LazyJournal />
     </div>
   );
 }

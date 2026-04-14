@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { cn, playSuccessSound } from "@/lib/utils/utils";
 import { UserProfile } from "@/components/sidebar/userProfile/UserProfile";
-import { MobileSidebar } from "@/components/sidebar/mobileSidebar/MobileSidebar";
-import { HelpDialog } from "@/components/sidebar/helpDialog/HelpDialog";
 import { ProgressCard } from "@/components/progressCard/ProgressCard";
 import { NavItem } from "@/components/sidebar/navItem/NavItem";
 import { NAVIGATION_CONFIG } from "@/components/sidebar/sidebarConstantsAndConfigs";
 import { Logo } from "@/components/logo/Logo";
 import { useAppStore } from "@/stores";
+
+import { LazyHelpDialog, LazyMobileSidebar } from "@/lib/lazy-components";
 
 interface NavItemConfig {
   href: string;
@@ -88,7 +88,7 @@ export function Sidebar() {
       <div
         className={cn(
           "p-4 border-b border-border/50 flex",
-          sidebarExpanded || isMobile ? "justify-between" : "justify-center"
+          sidebarExpanded || isMobile ? "justify-between" : "justify-center",
         )}
       >
         <Logo />
@@ -145,15 +145,15 @@ export function Sidebar() {
         <Menu className="h-6 w-6" />
       </Button>
       {/* Mobile sidebar */}
-      <MobileSidebar>{sidebarContent(true)}</MobileSidebar>
+      <LazyMobileSidebar>{sidebarContent(true)}</LazyMobileSidebar>
       {/* Help dialog */}
-      <HelpDialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
+      <LazyHelpDialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
 
       {/* Desktop sidebar */}
       <div
         className={cn(
           "hidden lg:flex flex-col h-screen border-r border-border/50 bg-background/95 backdrop-blur-sm transition-all duration-300 ease-in-out",
-          sidebarExpanded ? "w-72" : "w-[72px]"
+          sidebarExpanded ? "w-72" : "w-[72px]",
         )}
       >
         {sidebarContent()}

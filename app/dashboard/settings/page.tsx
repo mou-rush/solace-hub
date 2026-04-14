@@ -1,12 +1,11 @@
 "use client";
 
-import Settings from "@/components/settings/Settings";
-import React from "react";
+import { LazySettings } from "@/lib/lazy-components";
 
 export default function SettingsPage() {
   return (
     <div>
-      <Settings />
+      <LazySettings />
     </div>
   );
 }

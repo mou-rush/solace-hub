@@ -1,12 +1,11 @@
 "use client";
 
-import Mood from "@/components/mood/Mood";
-import React from "react";
+import { LazyMood } from "@/lib/lazy-components";
 
-export default function moodPage() {
+export default function MoodPage() {
   return (
     <div>
-      <Mood />
+      <LazyMood />
     </div>
   );
 }

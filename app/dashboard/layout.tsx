@@ -3,9 +3,12 @@
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { LazySidebar } from "@/lib/lazy-components";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   const { user, loading } = useAuthStore();
   const router = useRouter();
 
@@ -17,8 +20,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex h-screen overflow-hidden">
+        {/* Placeholder sidebar column */}
+        <div className="hidden lg:flex flex-col h-screen w-[72px] border-r border-border/50 bg-background/95 animate-pulse" />
+        <main className="flex-1 overflow-y-auto bg-muted/30">
+          <PageSkeleton />
+        </main>
       </div>
     );
   }
@@ -27,7 +34,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <LazySidebar />
       <main className="flex-1 overflow-y-auto bg-muted/30">{children}</main>
     </div>
   );
