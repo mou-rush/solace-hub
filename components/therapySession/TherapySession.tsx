@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   doc,
   collection,
@@ -52,7 +52,7 @@ export default function TherapySession() {
   const [messages, setMessages] = useState<any[]>([]);
   const [savedSessions, setSavedSessions] = useState<any[]>([]);
   const [initializedSessions, setInitializedSessions] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [messagesLoaded, setMessagesLoaded] = useState(false);
 
@@ -75,7 +75,7 @@ export default function TherapySession() {
       user.uid,
       "sessions",
       sessionId,
-      "messages"
+      "messages",
     );
     const q = query(chatRef, orderBy("timestamp", "asc"));
 
@@ -146,12 +146,12 @@ export default function TherapySession() {
         user.uid,
         "sessions",
         sessionId,
-        "messages"
+        "messages",
       );
 
       addDoc(chatRef, {
         text: `Hello ${
-          user.displayName?.split(" ")[0] || "there"
+          user.displayName?.split(" ")[0] ?? "there"
         }! I'm your AI therapy assistant. How are you feeling today?`,
         sender: "ai",
         timestamp: serverTimestamp(),
@@ -161,7 +161,7 @@ export default function TherapySession() {
     }
   }, [user, messages.length, sessionId, messagesLoaded, initializedSessions]);
 
-  const createNewSession = async () => {
+  const createNewSession = useCallback(async () => {
     if (!user) return;
 
     const sessionsRef = collection(db, "users", user.uid, "sessions");
@@ -182,9 +182,9 @@ export default function TherapySession() {
       description: "You've started a new therapy session.",
       variant: "success",
     });
-  };
+  }, [user, addNotification, setSessionId, resetSession]);
 
-  const saveSessionData = async () => {
+  const saveSessionData = useCallback(async () => {
     if (!user || !sessionId) return;
 
     const sessionRef = doc(db, "users", user.uid, "sessions", sessionId);
@@ -200,26 +200,52 @@ export default function TherapySession() {
       description: "Your session details have been saved.",
       variant: "success",
     });
-  };
+  }, [
+    user,
+    sessionId,
+    sessionTheme,
+    sessionNotes,
+    sessionGoals,
+    addNotification,
+  ]);
 
-  const switchToSession = (id: string) => {
-    setSessionId(id);
-    setShowHistory(false);
-  };
+  const switchToSession = useCallback(
+    (id: string) => {
+      setSessionId(id);
+      setShowHistory(false);
+    },
+    [setSessionId, setShowHistory],
+  );
 
-  const formatMessageTime = (timestamp: any) => {
+  const formatMessageTime = useCallback((timestamp: any) => {
     if (!timestamp) return "";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return format(date, "h:mm a");
-  };
+  }, []);
 
-  const shareSessionLink = () => {
+  const shareSessionLink = useCallback(() => {
     addNotification({
       title: "Session Link Generated",
       description: "The link has been copied to your clipboard. (Demo only)",
       variant: "info",
     });
-  };
+  }, [addNotification]);
+
+  const closeInsightsModal = useCallback(
+    () => setShowInsightsModal(false),
+    [setShowInsightsModal],
+  );
+
+  // Memoised so InsightsModal doesn’t see a new array reference on every render.
+  const conversationHistory = useMemo(
+    () =>
+      messages.map((msg) => ({
+        text: msg.text,
+        sender: msg.sender,
+        timestamp: msg.timestamp?.toDate() || new Date(),
+      })),
+    [messages],
+  );
 
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden">
@@ -331,15 +357,11 @@ export default function TherapySession() {
       />
 
       <InsightsModal
-        userId={user?.uid || ""}
-        conversationHistory={messages.map((msg) => ({
-          text: msg.text,
-          sender: msg.sender,
-          timestamp: msg.timestamp?.toDate() || new Date(),
-        }))}
+        userId={user?.uid ?? ""}
+        conversationHistory={conversationHistory}
         currentMood={currentMood}
         isOpen={showInsightsModal}
-        onClose={() => setShowInsightsModal(false)}
+        onClose={closeInsightsModal}
       />
     </div>
   );

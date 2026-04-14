@@ -1,10 +1,6 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, Key, Paintbrush, Shield, User } from "lucide-react";
 import { ProfileSittings } from "@/components/settings/profile-settings/ProfileSittings";
@@ -12,60 +8,8 @@ import { SecuritySettings } from "@/components/settings/security-settings/Securi
 import { NotificationsSettings } from "@/components/settings/notifications-settings/NotificationsSettings";
 import { AppearanceSettings } from "@/components/settings/appearance-settings/AppearenceSettings";
 import { PrivacySettings } from "@/components/settings/privacy-settings/PrivacySettings";
-import { useAuthStore } from "@/stores";
 
 export default function SettingsPage() {
-  const { user } = useAuthStore();
-
-  const [userName, setUserName] = useState("");
-  const [email, setEmail] = useState("");
-
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [sessionReminders, setSessionReminders] = useState(true);
-  const [journalReminders, setJournalReminders] = useState(true);
-
-  const [dataSharing, setDataSharing] = useState(false);
-  const [anonymousAnalytics, setAnonymousAnalytics] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      setUserName(user.displayName || "");
-      setEmail(user.email || "");
-
-      const fetchUserPreferences = async () => {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-
-            if (userData.preferences?.notifications) {
-              setEmailNotifications(
-                userData.preferences.notifications.email ?? true
-              );
-              setSessionReminders(
-                userData.preferences.notifications.sessions ?? true
-              );
-              setJournalReminders(
-                userData.preferences.notifications.journal ?? true
-              );
-            }
-
-            if (userData.preferences?.privacy) {
-              setDataSharing(userData.preferences.privacy.dataSharing ?? false);
-              setAnonymousAnalytics(
-                userData.preferences.privacy.anonymousAnalytics ?? true
-              );
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching user preferences:", error);
-        }
-      };
-
-      fetchUserPreferences();
-    }
-  }, [user]);
-
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -102,33 +46,15 @@ export default function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <ProfileSittings
-          user={user}
-          email={email}
-          setUserName={setUserName}
-          userName={userName}
-          setEmail={setEmail}
-        />
+        <ProfileSittings />
 
         <SecuritySettings />
 
-        <NotificationsSettings
-          emailNotifications={emailNotifications}
-          sessionReminders={sessionReminders}
-          journalReminders={journalReminders}
-          setJournalReminders={setJournalReminders}
-          setSessionReminders={setSessionReminders}
-          setEmailNotifications={setEmailNotifications}
-        />
+        <NotificationsSettings />
 
         <AppearanceSettings />
 
-        <PrivacySettings
-          dataSharing={dataSharing}
-          setDataSharing={setDataSharing}
-          anonymousAnalytics={anonymousAnalytics}
-          setAnonymousAnalytics={setAnonymousAnalytics}
-        />
+        <PrivacySettings />
       </Tabs>
     </div>
   );

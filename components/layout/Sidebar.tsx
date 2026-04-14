@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, JSX, ComponentType } from "react";
+import { useState, useCallback, JSX, ComponentType, memo } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -28,7 +28,34 @@ interface NavSectionProps {
   items: NavItemConfig[];
   title: string;
   expanded: boolean;
+  pathname: string;
 }
+
+const NavSection = memo(function NavSection({
+  items,
+  title,
+  expanded,
+  pathname,
+}: NavSectionProps): JSX.Element {
+  return (
+    <div className="mb-6">
+      {expanded && (
+        <p className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mx-3 mb-3">
+          {title}
+        </p>
+      )}
+      <nav className="space-y-1 px-2">
+        {items.map((item) => (
+          <NavItem
+            key={item.href}
+            item={item}
+            isActive={pathname === item.href}
+          />
+        ))}
+      </nav>
+    </div>
+  );
+});
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -40,11 +67,10 @@ export function Sidebar() {
     addNotification,
   } = useAppStore();
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
-  //ToDo: Replace with actual data
-  const [streak] = useState(7);
-  const [progressValue] = useState(68);
+  const streak = 7;
+  const progressValue = 68;
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut(auth);
       playSuccessSound();
@@ -61,26 +87,9 @@ export function Sidebar() {
         variant: "error",
       });
     }
-  };
+  }, [addNotification]);
 
-  const renderNavSection = ({ items, title }: NavSectionProps): JSX.Element => (
-    <div className="mb-6">
-      {sidebarExpanded && (
-        <p className="text-xs uppercase text-muted-foreground font-semibold tracking-wider mx-3 mb-3">
-          {title}
-        </p>
-      )}
-      <nav className="space-y-1 px-2">
-        {items.map((item) => (
-          <NavItem
-            key={item.href}
-            item={item}
-            isActive={pathname === item.href}
-          />
-        ))}
-      </nav>
-    </div>
-  );
+  const handleHelpClick = useCallback(() => setHelpDialogOpen(true), []);
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
@@ -108,28 +117,27 @@ export function Sidebar() {
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-6 px-1 scrollbar-thin scrollbar-thumb-secondary">
-        {renderNavSection({
-          items: NAVIGATION_CONFIG.main,
-          title: "Main",
-          expanded: sidebarExpanded || isMobile,
-        })}
+        <NavSection
+          items={NAVIGATION_CONFIG.main}
+          title="Main"
+          expanded={sidebarExpanded || isMobile}
+          pathname={pathname}
+        />
 
         {(sidebarExpanded || isMobile) && (
           <ProgressCard streak={streak} progressValue={progressValue} />
         )}
 
-        {renderNavSection({
-          items: NAVIGATION_CONFIG.secondary,
-          title: "Features",
-          expanded: sidebarExpanded || isMobile,
-        })}
+        <NavSection
+          items={NAVIGATION_CONFIG.secondary}
+          title="Features"
+          expanded={sidebarExpanded || isMobile}
+          pathname={pathname}
+        />
       </div>
 
       {/* User Profile */}
-      <UserProfile
-        onSignOut={handleSignOut}
-        onHelpClick={() => setHelpDialogOpen(true)}
-      />
+      <UserProfile onSignOut={handleSignOut} onHelpClick={handleHelpClick} />
     </div>
   );
 

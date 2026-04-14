@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, FormEvent } from "react";
 import { doc, getDoc, updateDoc, setDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -57,54 +57,56 @@ export default function MoodTracker() {
     };
 
     fetchMoodData();
-  }, [user]);
+  }, [user, addNotification]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMood || !user) return;
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      if (!selectedMood || !user) return;
 
-    setLoading(true);
+      setLoading(true);
 
-    try {
-      const moodEntry = {
-        mood: selectedMood,
-        notes: notes,
-        timestamp: new Date().toISOString(),
-      };
+      try {
+        const moodEntry = {
+          mood: selectedMood,
+          notes: notes,
+          timestamp: new Date().toISOString(),
+        };
 
-      const moodRef = doc(db, "moods", user.uid);
-      const docSnap = await getDoc(moodRef);
-      if (docSnap.exists()) {
-        await updateDoc(moodRef, {
-          entries: arrayUnion(moodEntry),
+        const moodRef = doc(db, "moods", user.uid);
+        const docSnap = await getDoc(moodRef);
+        if (docSnap.exists()) {
+          await updateDoc(moodRef, {
+            entries: arrayUnion(moodEntry),
+          });
+        } else {
+          await setDoc(moodRef, {
+            entries: [moodEntry],
+          });
+        }
+
+        setMoodHistory((prev) => [...prev, moodEntry]);
+        setSelectedMood("");
+        setNotes("");
+
+        addNotification({
+          title: "Mood tracked",
+          description: "Your mood has been recorded successfully",
+          variant: "success",
         });
-      } else {
-        await setDoc(moodRef, {
-          entries: [moodEntry],
+      } catch (err) {
+        console.error("Error saving mood:", err);
+        addNotification({
+          title: "Error",
+          description: "Failed to save your mood",
+          variant: "error",
         });
+      } finally {
+        setLoading(false);
       }
-
-      setMoodHistory([...moodHistory, moodEntry]);
-
-      setSelectedMood("");
-      setNotes("");
-
-      addNotification({
-        title: "Mood tracked",
-        description: "Your mood has been recorded successfully",
-        variant: "success",
-      });
-    } catch (err) {
-      console.error("Error saving mood:", err);
-      addNotification({
-        title: "Error",
-        description: "Failed to save your mood",
-        variant: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [selectedMood, notes, user, addNotification],
+  );
 
   return (
     <div className="p-6">

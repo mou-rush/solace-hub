@@ -9,28 +9,38 @@ import {
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { Switch } from "@radix-ui/react-switch";
 import { TabsContent } from "@radix-ui/react-tabs";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAppStore, useAuthStore } from "@/stores";
-
-interface PrivacySettingsProps {
-  dataSharing: boolean;
-  setDataSharing: (value: boolean) => void;
-  anonymousAnalytics: boolean;
-  setAnonymousAnalytics: (value: boolean) => void;
-}
-export const PrivacySettings = ({
-  dataSharing,
-  anonymousAnalytics,
-  setDataSharing,
-  setAnonymousAnalytics,
-}: PrivacySettingsProps) => {
+export const PrivacySettings = () => {
   const { user } = useAuthStore();
   const { addNotification } = useAppStore();
+
+  const [dataSharing, setDataSharing] = useState(false);
+  const [anonymousAnalytics, setAnonymousAnalytics] = useState(true);
   const [privacyLoading, setPrivacyLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const prefs = snap.data().preferences?.privacy;
+          if (prefs) {
+            setDataSharing(prefs.dataSharing ?? false);
+            setAnonymousAnalytics(prefs.anonymousAnalytics ?? true);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading privacy preferences:", e);
+      }
+    };
+    load();
+  }, [user]);
 
   const handleUpdatePrivacy = async () => {
     if (!user) return;
@@ -51,10 +61,10 @@ export const PrivacySettings = ({
         description: "Your privacy settings have been saved",
         variant: "success",
       });
-    } catch (errorMessage: any) {
+    } catch (errorMessage: unknown) {
       addNotification({
         title: "Error updating preferences",
-        description: errorMessage.message,
+        description: (errorMessage as Error).message,
         variant: "error",
       });
     } finally {

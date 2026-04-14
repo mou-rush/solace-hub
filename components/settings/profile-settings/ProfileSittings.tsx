@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
-import { updateProfile, updateEmail, User } from "firebase/auth";
+import { updateProfile, updateEmail } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { updateDoc, doc } from "firebase/firestore";
 import { nanoid } from "nanoid";
@@ -18,23 +18,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { Camera, UserCircle } from "lucide-react";
-import { useAppStore } from "@/stores";
+import { useAppStore, useAuthStore } from "@/stores";
 
-interface ProfileSettingsProps {
-  setEmail: (email: string) => void;
-  user: User | null;
-  email: string;
-  userName: string;
-  setUserName: (name: string) => void;
-}
-export const ProfileSittings = ({
-  setEmail,
-  user,
-  email,
-  userName,
-  setUserName,
-}: ProfileSettingsProps) => {
+export const ProfileSittings = () => {
   const { addNotification } = useAppStore();
+  const { user } = useAuthStore();
+
+  const [userName, setUserName] = useState(user?.displayName ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+
+  useEffect(() => {
+    setUserName(user?.displayName ?? "");
+    setEmail(user?.email ?? "");
+  }, [user]);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);

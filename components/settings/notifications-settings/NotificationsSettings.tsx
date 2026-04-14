@@ -9,35 +9,41 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { TabsContent } from "@/components/ui/tabs";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 import { useAppStore, useAuthStore } from "@/stores";
 
-interface NotificationsSettingsProps {
-  emailNotifications: boolean;
-  setEmailNotifications: (value: boolean) => void;
-  sessionReminders: boolean;
-  journalReminders: boolean;
-  setSessionReminders: (value: boolean) => void;
-  setJournalReminders: (value: boolean) => void;
-}
-
-export const NotificationsSettings = ({
-  emailNotifications,
-  setEmailNotifications,
-  sessionReminders,
-  journalReminders,
-  setSessionReminders,
-  setJournalReminders,
-}: NotificationsSettingsProps) => {
+export const NotificationsSettings = () => {
   const { addNotification } = useAppStore();
   const { user } = useAuthStore();
 
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [sessionReminders, setSessionReminders] = useState(true);
+  const [journalReminders, setJournalReminders] = useState(true);
   const [notificationLoading, setNotificationLoading] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const prefs = snap.data().preferences?.notifications;
+          if (prefs) {
+            setEmailNotifications(prefs.email ?? true);
+            setSessionReminders(prefs.sessions ?? true);
+            setJournalReminders(prefs.journal ?? true);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading notification preferences:", e);
+      }
+    };
+    load();
+  }, [user]);
 
   const handleUpdateNotifications = async () => {
     if (!user) return;
