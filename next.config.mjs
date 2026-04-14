@@ -9,6 +9,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
+  serverExternalPackages: [
+    "firebase-admin",
+    "@google-cloud/firestore",
+    "@grpc/grpc-js",
+    "@grpc/proto-loader",
+  ],
+  env: {
+    GOOGLE_CLOUD_DISABLE_GRPC: "1",
+  },
+};
 
-export default nextConfig
+export default nextConfig;

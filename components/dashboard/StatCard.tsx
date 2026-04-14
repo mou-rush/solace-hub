@@ -1,5 +1,3 @@
-"use client";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { BookOpen, Brain, ChevronRight, Heart, TrendingUp } from "lucide-react";
@@ -8,7 +6,7 @@ import { getMoodStatus } from "@/lib/utils/utils";
 
 interface StatCardProps {
   readonly userData: {
-    lastMood?: { mood: string; timestamp: string };
+    lastMood?: { mood: string; timestamp: string } | null;
     therapySessions: number;
     journalEntries: number;
     streak: number;
@@ -24,7 +22,7 @@ export function StatCard({ userData }: StatCardProps) {
       icon: <Heart className="h-5 w-5" />,
       subtext: userData.lastMood
         ? `Last check: ${new Date(
-            userData.lastMood.timestamp
+            userData.lastMood.timestamp,
           ).toLocaleDateString()}`
         : "Complete your first mood assessment",
       linkText: "Update Status",
@@ -69,8 +67,8 @@ export function StatCard({ userData }: StatCardProps) {
         userData.streak > 3
           ? "increasing"
           : userData.streak > 0
-          ? "stable"
-          : "neutral",
+            ? "stable"
+            : "neutral",
     },
   ];
   return (
@@ -106,8 +104,8 @@ export function StatCard({ userData }: StatCardProps) {
                     card.trend === "increasing"
                       ? "text-green-600 bg-green-100"
                       : card.trend === "stable"
-                      ? "text-blue-600 bg-blue-100"
-                      : "text-gray-600 bg-gray-100"
+                        ? "text-blue-600 bg-blue-100"
+                        : "text-gray-600 bg-gray-100"
                   }`}
                 >
                   <TrendingUp

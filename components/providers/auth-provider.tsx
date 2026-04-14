@@ -3,13 +3,26 @@
 import { ReactNode, useEffect } from "react";
 import { useAuthStore, useAppStore } from "@/stores";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, type User } from "firebase/auth";
 
 interface AppProviderProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
-export function AppProvider({ children }: AppProviderProps) {
+function syncSessionCookie(user: User | null): void {
+  if (user) {
+    user
+      .getIdToken()
+      .then((token) => {
+        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Strict`;
+      })
+      .catch(console.error);
+  } else {
+    document.cookie = `__session=; path=/; max-age=0`;
+  }
+}
+
+export function AppProvider({ children }: Readonly<AppProviderProps>) {
   const { setUser, setLoading } = useAuthStore();
   const { setTheme } = useAppStore();
 
@@ -17,6 +30,7 @@ export function AppProvider({ children }: AppProviderProps) {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
+      syncSessionCookie(user);
     });
 
     return () => unsubscribe();

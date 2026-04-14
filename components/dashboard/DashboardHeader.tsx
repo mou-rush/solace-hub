@@ -1,22 +1,22 @@
-"use client";
 import { Clock, Users, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "../ui/card";
-
 import { getMoodStatus, getTimeOfDay } from "@/lib/utils/utils";
-import { useAuthStore } from "@/stores";
 
 interface DashboardHeaderProps {
-  userData: {
+  readonly userData: {
     lastMood: { mood: string } | null;
     therapySessions: number;
     journalEntries: number;
     streak: number;
   };
+  readonly userName?: string | null;
 }
-export function DashboardHeader({ userData }: DashboardHeaderProps) {
-  const { user } = useAuthStore();
 
+export function DashboardHeader({
+  userData,
+  userName,
+}: Readonly<DashboardHeaderProps>) {
   const getEngagementLevel = () => {
     const total = userData.therapySessions + userData.journalEntries;
     if (total >= 10)
@@ -34,7 +34,7 @@ export function DashboardHeader({ userData }: DashboardHeaderProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
-            Good {getTimeOfDay()}, {user?.displayName?.split(" ")[0] || "there"}
+            Good {getTimeOfDay()}, {userName?.split(" ")[0] ?? "there"}
           </h1>
           <p className="text-lg text-gray-600 mt-2">
             Your personalized mental wellness dashboard

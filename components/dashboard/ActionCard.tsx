@@ -1,5 +1,3 @@
-"use client";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Plus,
@@ -79,8 +77,8 @@ export function ActionCard() {
                       action.priority === "high"
                         ? "bg-gradient-to-br from-red-100 to-orange-100 text-red-600"
                         : action.priority === "medium"
-                        ? "bg-gradient-to-br from-blue-100 to-teal-100 text-blue-600"
-                        : "bg-gradient-to-br from-gray-100 to-slate-100 text-gray-600"
+                          ? "bg-gradient-to-br from-blue-100 to-teal-100 text-blue-600"
+                          : "bg-gradient-to-br from-gray-100 to-slate-100 text-gray-600"
                     } group-hover:scale-105 transition-transform`}
                   >
                     {action.icon}
@@ -96,8 +94,8 @@ export function ActionCard() {
                           action.priority === "high"
                             ? "border-red-200 text-red-600 bg-red-50"
                             : action.priority === "medium"
-                            ? "border-blue-200 text-blue-600 bg-blue-50"
-                            : "border-gray-200 text-gray-600 bg-gray-50"
+                              ? "border-blue-200 text-blue-600 bg-blue-50"
+                              : "border-gray-200 text-gray-600 bg-gray-50"
                         }`}
                       >
                         {action.priority}

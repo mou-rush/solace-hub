@@ -1,37 +1,16 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heart } from "lucide-react";
 interface DailyTipCardProps {
-  userData: {
+  readonly tip: string;
+  readonly userData: {
     therapySessions: number;
     journalEntries: number;
     streak: number;
   };
 }
 
-export function DailyTipCard({ userData }: DailyTipCardProps) {
-  const [tip, setTip] = useState("Loading...");
-
-  useEffect(() => {
-    const fetchTip = async () => {
-      try {
-        const response = await fetch("https://zenquotes.io/api/today");
-        const data = await response.json();
-        setTip(`${data[0]?.q} — ${data[0]?.a}`);
-      } catch (err) {
-        console.error("Failed to fetch tip:", err);
-        setTip(
-          "Your mental health journey is a marathon, not a sprint. Every small step counts."
-        );
-      }
-    };
-
-    fetchTip();
-  }, []);
-
+export function DailyTipCard({ tip, userData }: Readonly<DailyTipCardProps>) {
   return (
     <div className="space-y-6">
       <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
