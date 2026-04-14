@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { verifySession } from "@/lib/services/auth";
+import { getDashboardData } from "@/lib/services/dashboard";
+import { getDailyQuote } from "@/lib/services/quote";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ActionCard } from "@/components/dashboard/ActionCard";
@@ -13,47 +16,30 @@ export default async function Dashboard() {
     redirect("/login");
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-
-  const [dashboardRes, tipResponse] = await Promise.all([
-    fetch(`${baseUrl}/api/dashboard`, {
-      headers: { Cookie: `__session=${sessionCookie.value}` },
-      cache: "no-store",
-    }),
-    fetch(`${baseUrl}/api/daily-quote`, {
-      next: { revalidate: 86400 },
-    }),
+  // Verify token and fetch all data in parallel.
+  // Both calls are wrapped in React cache() — if any other Server Component
+  // in this render tree calls the same service with the same args, the result
+  // is shared with no extra network requests.
+  const [user, quote] = await Promise.all([
+    verifySession(sessionCookie.value),
+    getDailyQuote(),
   ]);
 
-  if (!dashboardRes.ok) {
+  if (!user) {
     redirect("/login");
   }
 
-  const dashboardData = await dashboardRes.json();
+  const userData = await getDashboardData(user.uid, sessionCookie.value);
 
-  let tip = "Take a moment to breathe and be present.";
-  try {
-    const tipData = await tipResponse.json();
-    tip = `${tipData[0]?.q} — ${tipData[0]?.a}`;
-  } catch {}
-
-  const userData = {
-    lastMood: dashboardData.lastMood,
-    therapySessions: dashboardData.therapySessions,
-    journalEntries: dashboardData.journalEntries,
-    streak: dashboardData.streak,
-  };
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <DashboardHeader userData={userData} userName={dashboardData.userName} />
+      <DashboardHeader userData={userData} userName={user.userName} />
 
       <StatCard userData={userData} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <ActionCard />
-        <DailyTipCard userData={userData} tip={tip} />
+        <DailyTipCard userData={userData} tip={quote.text} />
       </div>
     </div>
   );
